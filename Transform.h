@@ -1,6 +1,6 @@
 #pragma once
 #include "lib\glm\glm\glm.hpp"
-
+#define FLOATOFFSET 0.001
 using namespace glm;
 
 mat4 Rotate(float degrees, vec3 axis);
@@ -20,20 +20,10 @@ double dvecLength(vec3 v);
 struct MyTransform
 {
 	mat4 trans;
-	//对物体进行仿射变换
-	void AffineTrans(vec3& v);
-	void NormalTrans(vec3& v);
-	MyTransform(mat4 trans)
-	{
-		this->trans = trans;
-	}
-	MyTransform()
-	{
-		trans = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-	}
-	MyTransform MyInverse()
-	{
-		return MyTransform(inverse(this->trans));
-	}
+	void AffineTrans(vec3& v); //仿射变换
+	void NormalTrans(vec3& v); //对法线变换
+	MyTransform(mat4 trans);
+	MyTransform();
+	MyTransform MyInverse();
 
 };

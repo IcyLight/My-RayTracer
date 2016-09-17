@@ -46,7 +46,7 @@ void readfile(const char* filename)
 					validinput = readvals(s, 6, values); // Position/color for lts.
 					if (validinput)
 					{
-						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3],values[4],values[5],0), DefaultLightIntensity, LightType::Point);
+						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3],values[4],values[5],0), LightType::Point);
 						curScene.LightArray.push_back(l);
 					}
 					
@@ -57,7 +57,7 @@ void readfile(const char* filename)
 					if (validinput)
 					{
 						//原本的光的位置向量作为方向向量
-						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3],values[4],values[5],0 ), DefaultLightIntensity, LightType::Dirctional);
+						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3],values[4],values[5],0 ),  LightType::Dirctional);
 						curScene.LightArray.push_back(l);
 					}
 				}
@@ -115,8 +115,8 @@ void readfile(const char* filename)
 					validinput = readvals(s, 2, values); // Position/color for lts.
 					if (validinput)
 					{
-						ScreenWidth = values[0];
-						ScreenHeight = values[1];
+						curCamera.ScreenWidth = values[0];
+						curCamera.ScreenHeight = values[1];
 					}
 				}
 				else if (cmd == "camera") {
@@ -138,7 +138,7 @@ void readfile(const char* filename)
 							Sphere* s = new Sphere(vec3(values[0], values[1], values[2]), values[3], curScene.MatieralArray[curScene.MatieralArray.size()-1], TransformStack.top());
 							//TransformStack.top().TransVec(s.pos);
 							//curScene.sphArray.push_back(s);
-							curScene.ObjectArray.push_back(s);
+							curScene.GeometryArray.push_back(s);
 							
 						}
 					}
@@ -159,7 +159,7 @@ void readfile(const char* filename)
 						{
 							Triangle* tri = new Triangle(curScene.vertexArray[values[0]], curScene.vertexArray[values[1]], curScene.vertexArray[values[2]], curScene.MatieralArray[curScene.MatieralArray.size() - 1], TransformStack.top());
 							//curScene.triArray.push_back(tri);
-							curScene.ObjectArray.push_back(tri);
+							curScene.GeometryArray.push_back(tri);
 
 						}
 					}

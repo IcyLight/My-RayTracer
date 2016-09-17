@@ -1,6 +1,7 @@
 #include "Transform.h"
 
 
+
 mat4 Rotate(float degrees, vec3 axis)
 {
 
@@ -108,4 +109,17 @@ void MyTransform::NormalTrans(vec3& v)
 {
 	mat3 lm = mat3(transpose(inverse(this->trans)));  //ÏòÁ¿±ä»»¾ØÕóÊÇÔ­¾ØÕóµÄÄæ¾ØÕóµÄ×ªÖÃ
 	v = lm*v;
+}
+
+MyTransform::MyTransform(mat4 trans)
+{
+	this->trans = trans;
+}
+MyTransform::MyTransform()
+{
+	trans = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+}
+MyTransform MyTransform::MyInverse()
+{
+	return MyTransform(inverse(this->trans));
 }
