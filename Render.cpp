@@ -48,11 +48,11 @@ MyColor Raycast(Ray ray)
 	}
 	
 	//vector<HitPoint> SceneHits;
-	//vector< vector<Object>::iterator > HitObject;
+	//vector< vector<Geometry>::iterator > HitGeometry;
 	vector<MyHit> SceneHits;
 	//注意vector存储时会切掉子类“多余”的部分，导致虚函数失效，参见http://stackoverflow.com/questions/16872584/virtual-functions-and-vector-iterator
 	//此处引用vector保存指针
-	for (vector<Object*>::iterator i = curScene.ObjectArray.begin(); i != curScene.ObjectArray.end(); i++)  
+	for (vector<Geometry*>::iterator i = curScene.GeometryArray.begin(); i != curScene.GeometryArray.end(); i++)  
 	{
 		HitPoints hps = (*i)->Intersect(ray);
 		for (int x = 0; x < hps.PointCount; x++)
@@ -85,7 +85,7 @@ bool Light::visibile(Ray ray)
 	float OLdis = vecLength(this->pos - ray.origin);
 
 	vector<MyHit> SceneHits;
-	for (vector<Object*>::iterator i = curScene.ObjectArray.begin(); i != curScene.ObjectArray.end(); i++)
+	for (vector<Geometry*>::iterator i = curScene.GeometryArray.begin(); i != curScene.GeometryArray.end(); i++)
 	{
 		HitPoints hps = (*i)->Intersect(ray);
 		for (int x = 0; x < hps.PointCount; x++)
@@ -133,7 +133,7 @@ HitPoints Sphere::Intersect(Ray ray)
 		if (k1 < 0 && k2 < 0)
 			
 		{
-			//spHit.hps[0]= HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, ObjectType::infinite, NULL);
+			//spHit.hps[0]= HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite, NULL);
 			return spHit;
 			
 		}
@@ -175,23 +175,23 @@ HitPoints Sphere::Intersect(Ray ray)
 			if (inSphere)
 			{
 				//在圆内时，法向量反向, 反向相交点看作是无限远的点
-				//spHit.push(HitPoint(front_hitpos, -front_normal, front_depth, ObjectType::infinite, NULL));
+				//spHit.push(HitPoint(front_hitpos, -front_normal, front_depth, GeometryType::infinite, NULL));
 
-				spHit.push(HitPoint(back_hitpos, -back_normal, back_depth, ObjectType::sph));
+				spHit.push(HitPoint(back_hitpos, -back_normal, back_depth, GeometryType::sph));
 
 
 			}
 			else
 			{
-				spHit.push(HitPoint(front_hitpos, front_normal, front_depth, ObjectType::sph));
+				spHit.push(HitPoint(front_hitpos, front_normal, front_depth, GeometryType::sph));
 
-				spHit.push(HitPoint(back_hitpos, back_normal, back_depth, ObjectType::sph));
+				spHit.push(HitPoint(back_hitpos, back_normal, back_depth, GeometryType::sph));
 			}
 		}
 	}
 	else
 	{
-		//spHit.hps[0] = HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, ObjectType::infinite,NULL);
+		//spHit.hps[0] = HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite,NULL);
 		
 	}
 
@@ -221,7 +221,7 @@ HitPoints Triangle::Intersect(Ray ray)
 	float denominator = dot(d, normal);
 	if (abs(denominator) < FLOATOFFSET  )
 	{
-		//triHit.hps[0] = HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, ObjectType::infinite, NULL);
+		//triHit.hps[0] = HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite, NULL);
 		
 		return triHit;
 	}
@@ -231,7 +231,7 @@ HitPoints Triangle::Intersect(Ray ray)
 		float k = (dot(va, normal) - dot(o, normal)) / denominator;
 		if (k < 0)
 		{
-			//HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, ObjectType::infinite, NULL);
+			//HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite, NULL);
 			
 			return triHit;
 		}
@@ -294,7 +294,7 @@ HitPoints Triangle::Intersect(Ray ray)
 
 
 			double depth = glm::min(dvecLength(k*d), maxDepth) / maxDepth;
-			HitPoint hp = HitPoint(hitpos, normal, depth, ObjectType::tri);
+			HitPoint hp = HitPoint(hitpos, normal, depth, GeometryType::tri);
 			triHit.push(hp);
 			
 			return triHit;
@@ -308,15 +308,8 @@ HitPoints Triangle::Intersect(Ray ray)
 }
 
 
-MyColor Object::GetColor(vec3 hitpos,vec3 normal, Ray ray)  //在视角空间中获取颜色
+MyColor Geometry::GetColor(vec3 hitpos,vec3 normal, Ray ray)  //在视角空间中获取颜色
 {
-	
-	//ray.xfrmRay(this->transform);
-	//this->transform.AffineTrans(hitpos);
-	//mat3 linear = mat3(this->transform.trans);
-	//normal = linear*normal;
-
-	
 	MyColor& diffuse = this->m.diffuse;
 	MyColor& specular = this->m.specular;
 	MyColor& emission = this->m.emission;

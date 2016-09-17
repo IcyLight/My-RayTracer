@@ -9,6 +9,7 @@
 #include <algorithm>
 #include "lib\FreeImage.h"
 #include "Transform.h"
+#include "MyColor.h"
 
 using namespace glm;
 using namespace std;
@@ -16,79 +17,7 @@ using namespace std;
 
 
 
-struct MyColor
-{
-	//RGBQUAD color;
-	float R, G, B, A;
-	MyColor(float R, float G, float B,float A)
-	{
-		this->R = R;
-		this->B = B;
-		this->G = G;
-		this->A = A;
-	}
-	MyColor(){}
-	MyColor operator*(float d)
-	{
-		MyColor c = *this;
-		/*
-		c.R = glm::min(c.R*d, 1.f);
-		c.G = glm::min(c.G*d, 1.f);
-		c.B = glm::min(c.B*d, 1.f);
-		c.A = glm::min(c.A*d, 1.f);
-		*/
-		c.R = c.R*d;
-		c.G = c.G*d;
-		c.B = c.B*d;
-		c.A = c.A*d;
-		return c;
-	}
-	MyColor operator+(MyColor mc)
-	{
-		MyColor c = mc;
-		/*
-		c.R = glm::min(c.R + this->R, 1.f);
-		c.B = glm::min(c.B + this->B, 1.f);
-		c.G = glm::min(c.G + this->G, 1.f);
-		c.A = glm::min(c.A + this->A, 1.f);
-		*/
-		c.R = c.R + this->R;
-		c.B = c.B + this->B;
-		c.G = c.G + this->G;
-		c.A = c.A + this->A;
-		return c;
-	}
-	MyColor operator*(MyColor mc)  
-	{
-		MyColor c = mc;
-		/*
-		c.R = glm::min(mc.R*this->R,1.f);
-		c.G = glm::min(mc.G*this->G, 1.f);
-		c.B = glm::min(mc.B*this->B, 1.f);
-		c.A = glm::min(mc.A*this->A, 1.f);
-		*/
-		c.R = mc.R*this->R;
-		c.G = mc.G*this->G;
-		c.B = mc.B*this->B;
-		c.A = mc.A*this->A;
-		return c;
-	}
 
-	RGBQUAD GetRBGQUAD()
-	{
-		float outR = glm::min(this->R, 1.f);
-		float outG = glm::min(this->G, 1.f);
-		float outB = glm::min(this->B, 1.f);
-		float outA = glm::min(this->A, 1.f);
-		RGBQUAD m;
-		m.rgbBlue = (BYTE)(outB * 255);
-		m.rgbGreen = (BYTE)(outG * 255);
-		m.rgbRed = (BYTE)(outR * 255);
-		m.rgbReserved = (BYTE)(outA * 255);
-		return m;
-	}
-
-};
 
 struct Ray
 {
@@ -126,7 +55,7 @@ struct Matieral
 };
 
 
-enum ObjectType
+enum GeometryType
 {
 	sph, tri, infinite
 };
@@ -136,12 +65,12 @@ struct HitPoint
 	vec3 position;
 	vec3 normal;
 	float depth;
-	ObjectType type;
+	GeometryType type;
 	HitPoint()
 	{
 
 	}
-	HitPoint(vec3 pos, vec3 nor, double depth, ObjectType type)
+	HitPoint(vec3 pos, vec3 nor, double depth, GeometryType type)
 	{
 		position = pos;
 		normal = normalize(nor);
@@ -185,7 +114,7 @@ struct HitPoints
 };
 
 
-class Object
+class Geometry
 {
 public:
 
@@ -226,8 +155,8 @@ struct Light
 struct MyHit
 {
 	HitPoint hp;
-	Object* obj;
-	MyHit(HitPoint hp, Object* obj)
+	Geometry* obj;
+	MyHit(HitPoint hp, Geometry* obj)
 	{
 		this->hp = hp;
 		this->obj = obj;
@@ -244,7 +173,7 @@ struct MyHit
 
 
 
-class Sphere : public Object
+class Sphere : public Geometry
 {
 public:
 	vec3 pos;
@@ -267,7 +196,7 @@ public:
 
 
 
-class Triangle : public Object
+class Triangle : public Geometry
 {
 public:
 	//HitPoint tri_Intersect(Ray ray);
@@ -286,8 +215,9 @@ public:
 };
 
 //摄像机在视角空间朝向-z轴
-struct Camera
+class Camera
 {
+public:
 	float FOVx,FOVy,near;
 	vec3 lookFrom;
 	vec3 lookAt;
@@ -310,11 +240,12 @@ struct Camera
 
 
 
-struct Scene
+class Scene
 {
+public:
 	//vector<Sphere> sphArray;
 	//vector<Triangle> triArray;
-	vector<Object*> ObjectArray;
+	vector<Geometry*> GeometryArray;
 	vector<Light> LightArray;
 	vector<vec3> vertexArray;
 	vector<Matieral> MatieralArray;

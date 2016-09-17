@@ -48,7 +48,7 @@ FIBITMAP* Display(Camera cam)
 
 	mat4 LookAtMat = lookAt(cam.lookFrom, cam.lookAt, cam.up);  //无法用矩阵实现平移
 	LookAtTrans = MyTransform(LookAtMat);
-	for (vector<Object*>::iterator i = curScene.ObjectArray.begin(); i != curScene.ObjectArray.end(); i++)
+	for (vector<Geometry*>::iterator i = curScene.GeometryArray.begin(); i != curScene.GeometryArray.end(); i++)
 	{
 		(*i)->transform.trans = LookAtTrans.trans* (*i)->transform.trans;  //注意输入时模型视角矩阵是不在矩阵栈中的
 		
