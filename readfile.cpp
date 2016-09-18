@@ -147,7 +147,7 @@ void readfile(const char* filename)
 						validinput = readvals(s, 3, values); // Position/color for lts.
 						if (validinput)
 						{
-							vec3 vertex = vec3(values[0], values[1], values[2]);
+							Vertex vertex = Vertex(vec3(values[0], values[1], values[2]));
 							curScene.vertexArray.push_back(vertex);
 						}
 					}

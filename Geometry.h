@@ -2,6 +2,7 @@
 #include "Transform.h"
 #include "Material.h"
 #include "Ray.h"
+#include "Vertex.h"
 enum GeometryType
 {
 	sph, tri, infinite
@@ -31,13 +32,11 @@ struct HitPoints
 	}
 };
 
+
+
 class Geometry
 {
 public:
-
-
-
-	//MyColor GetColor(vec3 hitpos, vec3 normal, Ray ray);
 	virtual HitPoints Intersect(Ray ray)
 	{
 		return HitPoints();
@@ -89,9 +88,9 @@ public:
 class Triangle : public Geometry
 {
 public:
-	vec3 a, b, c;
+	Vertex a, b, c;
 	virtual HitPoints Intersect(Ray ray);
-	Triangle(vec3 pA, vec3 pB, vec3 pC, Matieral m, MyTransform transform);
+	Triangle(Vertex _vA, Vertex _vB, Vertex _vC, Matieral m, MyTransform transform);
 
 
 };

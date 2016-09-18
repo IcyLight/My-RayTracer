@@ -31,7 +31,7 @@ using namespace std;
 
 
 
-//摄像机在视角空间朝向-z轴
+
 
 
 
@@ -43,13 +43,13 @@ public:
 	//vector<Triangle> triArray;
 	vector<Geometry*> GeometryArray;
 	vector<Light> LightArray;
-	vector<vec3> vertexArray;
+	vector<Vertex> vertexArray;
 	vector<Matieral> MatieralArray;
 	Matieral defaultMatieral;
 
 	
 	MyColor Raycast(Ray ray);
-	MyColor GetColor(vec3 hitpos, vec3 normal, Ray ray, const Geometry* geometry);
+	MyColor GetColor(HitPoint hit,  Ray ray, const Geometry* geometry);
 	bool visibile(Ray ray,Light* light);
 	Ray RayThurPixel(Camera cam, int j, int i, float w);
 	Scene(float MaxRayDepth, int RecursiveMaxDepth);

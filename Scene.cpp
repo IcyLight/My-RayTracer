@@ -17,7 +17,7 @@ vec3 LightModelConstant = vec3(1, 0.1, 0.05);  //¹âÕÕÄ£ÐÍÖÐ¹âÇ¿Ëæ¾àÀëË¥¼õ¹«Ê½µÄÈ
 MyTransform LookAtTrans;
 
 
-//½«ÉäÏßÓÉÊÓ½Ç×ø±ê×ª»»µ½ÎïÌå×ø±ê
+
 Scene::Scene(float MaxRayDepth, int RecursiveMaxDepth)
 {
 	this->MaxRayDepth = MaxRayDepth;
@@ -57,18 +57,20 @@ MyColor Scene::Raycast(Ray ray)
 	{
 		return MyColor(0, 0, 0, 0);
 	}
-	MyColor color = GetColor(SceneHits[0].hp.position, SceneHits[0].hp.normal, ray,SceneHits[0].obj);
+	MyColor color = GetColor(SceneHits[0].hp, ray,SceneHits[0].obj);
 
 	return color;
 }
 
-MyColor Scene::GetColor(vec3 hitpos,vec3 normal, Ray ray,const Geometry* geometry )  //ÔÚÊÓ½Ç¿Õ¼äÖÐ»ñÈ¡ÑÕÉ«
+MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //ÔÚÊÓ½Ç¿Õ¼äÖÐ»ñÈ¡ÑÕÉ«
 {
 	const MyColor& diffuse = geometry->m.diffuse;
 	const MyColor& specular = geometry->m.specular;
 	const MyColor& emission = geometry->m.emission;
 	const MyColor& ambient = geometry->m.ambient;
 	const float&  shininess = geometry->m.shininess;
+	vec3& hitpos = hit.position;
+	vec3& normal = hit.normal;
 
 
 	MyColor PointColor = emission + ambient;
