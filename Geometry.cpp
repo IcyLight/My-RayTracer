@@ -2,12 +2,13 @@
 
 
 
-HitPoint::HitPoint(vec3 pos, vec3 nor, double depth, GeometryType type)
+HitPoint::HitPoint(vec3 pos, vec3 nor, vec3 uvw, double depth, GeometryType type)
 {
 	position = pos;
 	normal = normalize(nor);
 	this->depth = depth;
 	this->type = type;
+	this->uvw = uvw;
 	//this->matieral = matieral;
 }
 bool HitPoint::operator< (const HitPoint& h)
@@ -35,7 +36,7 @@ bool HitPoints::push(HitPoint hp)
 }
 
 
-Sphere::Sphere(vec3 pos, float radius, Matieral m, MyTransform transform)
+Sphere::Sphere(vec3 pos, float radius, Matieral* m, MyTransform transform)
 {
 	this->pos = pos;
 	this->radius = radius;
@@ -104,20 +105,21 @@ HitPoints Sphere::Intersect(Ray ray)
 				inSphere = true;
 			}
 
+			vec3 uvw = vec3(0, 0, 0);
 			if (inSphere)
 			{
 				//在圆内时，法向量反向, 反向相交点看作是无限远的点
 				//spHit.push(HitPoint(front_hitpos, -front_normal, front_depth, GeometryType::infinite, NULL));
 
-				spHit.push(HitPoint(back_hitpos, -back_normal, back_depth, GeometryType::sph));
+				spHit.push(HitPoint(back_hitpos, -back_normal,uvw, back_depth, GeometryType::sph));
 
 
 			}
 			else
 			{
-				spHit.push(HitPoint(front_hitpos, front_normal, front_depth, GeometryType::sph));
+				spHit.push(HitPoint(front_hitpos, front_normal, uvw, front_depth, GeometryType::sph));
 
-				spHit.push(HitPoint(back_hitpos, back_normal, back_depth, GeometryType::sph));
+				spHit.push(HitPoint(back_hitpos, back_normal, uvw, back_depth, GeometryType::sph));
 			}
 		}
 	}
@@ -132,7 +134,7 @@ HitPoints Sphere::Intersect(Ray ray)
 }
 
 
-Triangle::Triangle(Vertex _vA, Vertex _vB, Vertex _vC, Matieral m, MyTransform transform)
+Triangle::Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransform transform)
 {
 	this->a = _vA;
 	this->b = _vB;
@@ -151,15 +153,15 @@ HitPoints Triangle::Intersect(Ray ray)
 	ray.xfrmRay(transform.trans);
 	vec3& d = ray.dirction;
 	vec3& o = ray.origin;
-	vec3& va = this->a.pos;
-	vec3& vb = this->b.pos;
-	vec3& vc = this->c.pos;
-	vec3 normal = normalize(cross(vc - va, vb - va));  //两面的法线选择和入射光同一面的
-	if (dot(normal, ray.dirction) > 0)
+	vec3& va = this->a->pos;
+	vec3& vb = this->b->pos;
+	vec3& vc = this->c->pos;
+	vec3 faceNormal = normalize(cross(vc - va, vb - va));  //两面的法线选择和入射光同一面的
+	if (dot(faceNormal, ray.dirction) > 0)
 	{
-		normal = -normal;
+		faceNormal *= -1;
 	}
-	float denominator = dot(d, normal);
+	float denominator = dot(d, faceNormal);
 	if (abs(denominator) < FLOATOFFSET) //平行的时候
 	{
 		return triHit;
@@ -231,6 +233,20 @@ HitPoints Triangle::Intersect(Ray ray)
 		if(u>-FLOATOFFSET && v>-FLOATOFFSET && u + v<1+FLOATOFFSET)
 		{
 			vec3 hitpos = o + t*d;
+			vec3 normal;
+			vec3 uvw;
+			if (NORMALINTERPOLATION)
+			{
+				normal = (1 - u - v)*a->normal + u*b->normal + v*c->normal;
+				uvw = (1 - u - v)*a->uvw + u*b->uvw + v*c->uvw;
+			}
+			else
+			{
+				normal = faceNormal;
+				uvw = vec3(0, 0, 0);
+			}
+
+
 			//求出k后就要吧射线变换回来            而且把点和向量都转换到世界坐标
 			MyTransform mt = this->transform;
 			MyTransform imt = this->transform.MyInverse();
@@ -246,7 +262,7 @@ HitPoints Triangle::Intersect(Ray ray)
 
 
 			double depth = glm::min(vecLength(t*d), ray.maxDepth) / ray.maxDepth;
-			HitPoint hp = HitPoint(hitpos, normal, depth, GeometryType::tri);
+			HitPoint hp = HitPoint(hitpos, normal,uvw, depth, GeometryType::tri);
 			triHit.push(hp);
 
 			return triHit;

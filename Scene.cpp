@@ -1,7 +1,7 @@
 
 #include "Scene.h"
 
-#define RECURSIVE 1
+
 
 
 //column major
@@ -64,11 +64,11 @@ MyColor Scene::Raycast(Ray ray)
 
 MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视角空间中获取颜色
 {
-	const MyColor& diffuse = geometry->m.diffuse;
-	const MyColor& specular = geometry->m.specular;
-	const MyColor& emission = geometry->m.emission;
-	const MyColor& ambient = geometry->m.ambient;
-	const float&  shininess = geometry->m.shininess;
+	const MyColor& diffuse = geometry->m->diffuse;
+	const MyColor& specular = geometry->m->specular;
+	const MyColor& emission = geometry->m->emission;
+	const MyColor& ambient = geometry->m->ambient;
+	const float&  shininess = geometry->m->shininess;
 	vec3& hitpos = hit.position;
 	vec3& normal = hit.normal;
 

@@ -12,10 +12,11 @@ struct HitPoint
 {
 	vec3 position;
 	vec3 normal;
+	vec3 uvw;
 	float depth;
 	GeometryType type;
 	HitPoint() {}
-	HitPoint(vec3 pos, vec3 nor, double depth, GeometryType type);
+	HitPoint(vec3 pos, vec3 nor,vec3 uvw, double depth, GeometryType type);
 	bool operator< (const HitPoint& h);
 	void Trans(MyTransform m);
 
@@ -41,7 +42,7 @@ public:
 	{
 		return HitPoints();
 	}
-	Matieral m;
+	Matieral* m;
 	MyTransform transform;
 
 };
@@ -77,7 +78,7 @@ public:
 	float radius;
 
 	virtual HitPoints Intersect(Ray ray);
-	Sphere(vec3 pos, float radius, Matieral m, MyTransform transform);
+	Sphere(vec3 pos, float radius, Matieral* m, MyTransform transform);
 
 
 };
@@ -88,9 +89,9 @@ public:
 class Triangle : public Geometry
 {
 public:
-	Vertex a, b, c;
+	Vertex* a, * b, *c;
 	virtual HitPoints Intersect(Ray ray);
-	Triangle(Vertex _vA, Vertex _vB, Vertex _vC, Matieral m, MyTransform transform);
+	Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransform transform);
 
 
 };

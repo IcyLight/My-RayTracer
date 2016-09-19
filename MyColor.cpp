@@ -11,7 +11,13 @@
 		this->G = G;
 		this->A = A;
 	}
-	MyColor::MyColor() {}
+	MyColor::MyColor() 
+	{
+		this->R = 0;
+		this->B = 0;
+		this->G = 0;
+		this->A = 0;
+	}
 	MyColor MyColor::operator*(const float& d) const
 	{
 		return MyColor(R*d, G*d, B*d, A*d);

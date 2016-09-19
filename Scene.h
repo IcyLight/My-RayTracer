@@ -44,8 +44,12 @@ public:
 	vector<Geometry*> GeometryArray;
 	vector<Light> LightArray;
 	vector<Vertex> vertexArray;
-	vector<Matieral> MatieralArray;
+	vector<Matieral*> MatieralArray;
 	Matieral defaultMatieral;
+
+	vector<vec3> vPosArray;
+	vector<vec3> vNorArray;
+	vector<vec3> vUVArray;
 
 	
 	MyColor Raycast(Ray ray);

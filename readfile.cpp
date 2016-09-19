@@ -3,6 +3,7 @@
 
 string curfilename;
 
+LoadMode loadMode = LoadMode::ObjLoad;
 
 bool readvals(stringstream &s, const int numvals, float* values)
 {
@@ -15,18 +16,13 @@ bool readvals(stringstream &s, const int numvals, float* values)
 	}
 	return true;
 }
-
-void readfile(const char* filename)
+void HWload(const char* filename, Scene* scene)
 {
 	string str, cmd;
 	ifstream in;
 	in.open(filename);
 	if (in.is_open()) {
-			Matieral defaultMatieral;
-		// I need to implement a matrix stack to store transforms.  
-		// This is done using standard STL Templates 
-		//stack <mat4> transfstack;   //这个矩阵堆栈主要是与输入格式配合
-		//transfstack.push(mat4(1.0));  // identity
+		Matieral defaultMatieral;
 		TransformStack.push(MyTransform(mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)));
 		getline(in, str);
 		while (in) {
@@ -36,20 +32,20 @@ void readfile(const char* filename)
 				stringstream s(str);
 				s >> cmd;
 				int i;
-				float values[10]; 
-								
-				bool validinput; 
+				float values[10];
 
-								 
-								 
+				bool validinput;
+
+
+
 				if (cmd == "point") {
 					validinput = readvals(s, 6, values); // Position/color for lts.
 					if (validinput)
 					{
-						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3],values[4],values[5],0), LightType::Point);
-						curScene.LightArray.push_back(l);
+						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3], values[4], values[5], 0), LightType::Point);
+						scene->LightArray.push_back(l);
 					}
-					
+
 				}
 				else if (cmd == "directional")
 				{
@@ -57,8 +53,8 @@ void readfile(const char* filename)
 					if (validinput)
 					{
 						//原本的光的位置向量作为方向向量
-						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3],values[4],values[5],0 ),  LightType::Dirctional);
-						curScene.LightArray.push_back(l);
+						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3], values[4], values[5], 0), LightType::Dirctional);
+						scene->LightArray.push_back(l);
 					}
 				}
 
@@ -66,11 +62,11 @@ void readfile(const char* filename)
 					validinput = readvals(s, 3, values); // Position/color for lts.
 					if (validinput)
 					{
-						//curScene.defaultMatieral.ambient = MyColor((BYTE)((BYTE)(values[0] * 255)), (BYTE)((BYTE)(values[1] * 255)), (BYTE)((BYTE)(values[2] * 255)), 0);
-						curScene.defaultMatieral.ambient = MyColor(values[0], values[1], values[2], 0);
+						//scene->defaultMatieral.ambient = MyColor((BYTE)((BYTE)(values[0] * 255)), (BYTE)((BYTE)(values[1] * 255)), (BYTE)((BYTE)(values[2] * 255)), 0);
+						scene->defaultMatieral.ambient = MyColor(values[0], values[1], values[2], 0);
 						/*
 						Light l = Light(vec3(0,0,0), MyColor( (BYTE)(values[0] * 255),(BYTE)(values[1] * 255),(BYTE)(values[2] * 255),0 ), DefaultLightIntensity, LightType::ambient);
-						curScene.LightArray.push_back(l);
+						scene->LightArray.push_back(l);
 						*/
 					}
 				}
@@ -78,37 +74,37 @@ void readfile(const char* filename)
 					validinput = readvals(s, 3, values); // Position/color for lts.
 					if (validinput)
 					{
-						
-						//curScene.defaultMatieral.diffuse = MyColor( (BYTE)((BYTE)(values[0] * 255)), (BYTE)((BYTE)(values[1] * 255)), (BYTE)((BYTE)(values[2] * 255)),0 );
-						curScene.defaultMatieral.diffuse = MyColor(values[0], values[1], values[2], 0);
+
+						//scene->defaultMatieral.diffuse = MyColor( (BYTE)((BYTE)(values[0] * 255)), (BYTE)((BYTE)(values[1] * 255)), (BYTE)((BYTE)(values[2] * 255)),0 );
+						scene->defaultMatieral.diffuse = MyColor(values[0], values[1], values[2], 0);
 					}
-					
+
 
 				}
 				else if (cmd == "specular") {
 					validinput = readvals(s, 3, values); // Position/color for lts.
 					if (validinput)
 					{
-						
-						//curScene.defaultMatieral.specular = MyColor( (BYTE)(values[0] * 255), (BYTE)(values[1] * 255), (BYTE)(values[2] * 255),0 );
-						curScene.defaultMatieral.specular = MyColor(values[0], values[1], values[2], 0);
+
+						//scene->defaultMatieral.specular = MyColor( (BYTE)(values[0] * 255), (BYTE)(values[1] * 255), (BYTE)(values[2] * 255),0 );
+						scene->defaultMatieral.specular = MyColor(values[0], values[1], values[2], 0);
 					}
 				}
 				else if (cmd == "emission") {
 					validinput = readvals(s, 3, values); // Position/color for lts.
 					if (validinput)
 					{
-						
-						//curScene.defaultMatieral.emission = MyColor( (BYTE)(values[0] * 255), (BYTE)(values[1] * 255), (BYTE)(values[2] * 255),0 );
-						curScene.defaultMatieral.emission = MyColor(values[0], values[1], values[2], 0);
+
+						//scene->defaultMatieral.emission = MyColor( (BYTE)(values[0] * 255), (BYTE)(values[1] * 255), (BYTE)(values[2] * 255),0 );
+						scene->defaultMatieral.emission = MyColor(values[0], values[1], values[2], 0);
 					}
 				}
 				else if (cmd == "shininess") {
 					validinput = readvals(s, 1, values); // Position/color for lts.
 					if (validinput)
 					{
-						
-						curScene.defaultMatieral.shininess = values[0];
+
+						scene->defaultMatieral.shininess = values[0];
 					}
 				}
 				else if (cmd == "size") {
@@ -131,15 +127,15 @@ void readfile(const char* filename)
 
 					if (cmd == "sphere")
 					{
-						curScene.MatieralArray.push_back(curScene.defaultMatieral);
+						scene->MatieralArray.push_back(new Matieral(scene->defaultMatieral));
 						validinput = readvals(s, 4, values); // Position/color for lts.
 						if (validinput)
 						{
-							Sphere* s = new Sphere(vec3(values[0], values[1], values[2]), values[3], curScene.MatieralArray[curScene.MatieralArray.size()-1], TransformStack.top());
+							Sphere* s = new Sphere(vec3(values[0], values[1], values[2]), values[3], scene->MatieralArray[scene->MatieralArray.size() - 1], TransformStack.top());
 							//TransformStack.top().TransVec(s.pos);
-							//curScene.sphArray.push_back(s);
-							curScene.GeometryArray.push_back(s);
-							
+							//scene->sphArray.push_back(s);
+							scene->GeometryArray.push_back(s);
+
 						}
 					}
 					else if (cmd == "vertex")
@@ -148,23 +144,24 @@ void readfile(const char* filename)
 						if (validinput)
 						{
 							Vertex vertex = Vertex(vec3(values[0], values[1], values[2]));
-							curScene.vertexArray.push_back(vertex);
+							scene->vertexArray.push_back(vertex);
 						}
 					}
-					else if(cmd == "tri")
+					else if (cmd == "tri")
 					{
-						curScene.MatieralArray.push_back(curScene.defaultMatieral);
+
+						scene->MatieralArray.push_back(new Matieral(scene->defaultMatieral));
 						validinput = readvals(s, 3, values); // Position/color for lts.
 						if (validinput)
 						{
-							Triangle* tri = new Triangle(curScene.vertexArray[values[0]], curScene.vertexArray[values[1]], curScene.vertexArray[values[2]], curScene.MatieralArray[curScene.MatieralArray.size() - 1], TransformStack.top());
-							//curScene.triArray.push_back(tri);
-							curScene.GeometryArray.push_back(tri);
-
+							Triangle* tri = new Triangle(&scene->vertexArray[values[0]], &scene->vertexArray[values[1]], &scene->vertexArray[values[2]], scene->MatieralArray[scene->MatieralArray.size() - 1], TransformStack.top());
+							//scene->triArray.push_back(tri);
+							scene->GeometryArray.push_back(tri);
 						}
 					}
 
 				}
+
 				else if (cmd == "vertexnormal" || cmd == "trinormal")  //作业不需要，以后再加上来
 				{
 
@@ -178,7 +175,7 @@ void readfile(const char* filename)
 						mt = Translate(vec3(values[0], values[1], values[2]));
 						TransformStack.top().trans = TransformStack.top().trans* mt;
 					}
-					
+
 				}
 				else if (cmd == "scale") {
 					validinput = readvals(s, 3, values); // Position/color for lts.
@@ -187,7 +184,7 @@ void readfile(const char* filename)
 						mat4 mt;
 						mt = Scale(vec3(values[0], values[1], values[2]));
 						TransformStack.top().trans = TransformStack.top().trans* mt;
-						
+
 
 					}
 				}
@@ -196,7 +193,7 @@ void readfile(const char* filename)
 					if (validinput)
 					{
 						mat4 mt;
-						mt = Rotate(values[3],vec3(values[0], values[1], values[2]));
+						mt = Rotate(values[3], vec3(values[0], values[1], values[2]));
 						TransformStack.top().trans = TransformStack.top().trans* mt;
 						int i = 0;
 
@@ -221,17 +218,104 @@ void readfile(const char* filename)
 				}
 
 				else {
-					
+
 				}
 			}
 			getline(in, str);
 		}
 
-		
+
 	}
 	else {
 		cerr << "Unable to Open Input Data File " << filename << "\n";
 		throw 2;
 	}
+}
+void Objload(const char* filename, Scene* scene)
+{
+	string str, cmd;
+	ifstream in;
+	in.open(filename);
+	if (in.is_open()) {
+		Matieral defaultMatieral;
+		TransformStack.push(MyTransform(mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)));
+		getline(in, str);
+		float values[9];
+		while (in) {
+			if ((str.find_first_not_of(" \t\r\n") != string::npos) && (str[0] != '#'))
+			{
+				stringstream s(str);
+				s >> cmd;
+
+				if (cmd == "f")
+				{
+					scene->MatieralArray.push_back(new Matieral(scene->defaultMatieral));
+					for (int i = 0; i < 3; i++)
+					{
+						Vertex vet;
+						int pos, uv, nor;
+						string st;
+						s >> st;
+						sscanf(&st[0], "%d/%d/%d", &pos, &uv, &nor);
+						vet = Vertex( scene->vPosArray[pos-1], scene->vUVArray[uv-1], scene->vNorArray[nor-1]);
+						scene->vertexArray.push_back(vet);
+						int u = 0;
+					}
+					int top = scene->vertexArray.size();
+					Vertex* v1 = &scene->vertexArray[top - 1];
+					Vertex* v2 = &scene->vertexArray[top - 2];
+					Vertex* v3 = &scene->vertexArray[top - 3];
+					Triangle* t = new Triangle(
+						v1,v2,v3,
+						scene->MatieralArray[scene->MatieralArray.size() - 1], TransformStack.top());
+					scene->GeometryArray.push_back(t);
+				}
+				else if (cmd == "v")
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						scene->vPosArray.push_back(vec3(values[0], values[1], values[2]));
+					}
+					
+				}
+				else if (cmd == "vt")
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						scene->vUVArray.push_back(vec3(values[0], values[1], values[2]));
+					}
+
+				}
+				else if (cmd == "vn")
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						scene->vNorArray.push_back(vec3(values[0], values[1], values[2]));
+					}
+
+				}
+				else if (cmd == "usemtl")
+				{
+
+				}
+			}
+			getline(in, str);
+		}
+	}
+}
+void readfile(const char* filename, Scene* scene)
+{
+	if (loadMode == LoadMode::HwLoad)
+	{
+		HWload(filename,scene);
+	}
+	else if (loadMode == LoadMode::ObjLoad)
+	{
+		Objload(filename, scene);
+	}
+
 }
 
