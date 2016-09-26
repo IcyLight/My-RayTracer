@@ -90,6 +90,7 @@ class Triangle : public Geometry
 {
 public:
 	Vertex* a, * b, *c;
+	vec3 faceNormal;
 	virtual HitPoints Intersect(Ray ray);
 	Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransform transform);
 

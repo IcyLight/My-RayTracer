@@ -3,7 +3,7 @@
 
 string curfilename;
 
-LoadMode loadMode = LoadMode::ObjLoad;
+LoadMode loadMode = LoadMode::HwLoad;
 
 bool readvals(stringstream &s, const int numvals, float* values)
 {
@@ -237,7 +237,7 @@ void Objload(const char* filename, Scene* scene)
 	ifstream in;
 	in.open(filename);
 	if (in.is_open()) {
-		Matieral defaultMatieral;
+		Matieral* defaultMatieral;
 		TransformStack.push(MyTransform(mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)));
 		getline(in, str);
 		float values[9];
@@ -249,7 +249,7 @@ void Objload(const char* filename, Scene* scene)
 
 				if (cmd == "f")
 				{
-					scene->MatieralArray.push_back(new Matieral(scene->defaultMatieral));
+					//scene->MatieralArray.push_back(new Matieral(scene->defaultMatieral));
 					for (int i = 0; i < 3; i++)
 					{
 						Vertex vet;
@@ -267,7 +267,7 @@ void Objload(const char* filename, Scene* scene)
 					Vertex* v3 = &scene->vertexArray[top - 3];
 					Triangle* t = new Triangle(
 						v1,v2,v3,
-						scene->MatieralArray[scene->MatieralArray.size() - 1], TransformStack.top());
+						&scene->defaultMatieral, TransformStack.top());
 					scene->GeometryArray.push_back(t);
 				}
 				else if (cmd == "v")
@@ -299,13 +299,150 @@ void Objload(const char* filename, Scene* scene)
 				}
 				else if (cmd == "usemtl")
 				{
+					string mtlname;
+					s >> mtlname;
+					bool flag = false;
+					for (vector<Matieral*>::iterator i = scene->MatieralArray.begin(); i != scene->MatieralArray.end(); i++)
+					{
+						if ((*i)->name == mtlname)
+						{
+							defaultMatieral = *i;
+							flag == true;
+						}
+					}
+					if (!flag)
+					{
 
+					}
 				}
 			}
 			getline(in, str);
 		}
 	}
 }
+
+void mtlLoad(const char* filename, Scene* scene)
+{
+	string str, cmd;
+	ifstream in;
+	in.open(filename);
+	if (in.is_open()) {
+		getline(in, str);
+		float values[9];
+		Matieral* curMat;
+		while (in) {
+			if ((str.find_first_not_of(" \t\r\n") != string::npos) && (str[0] != '#'))
+			{
+				stringstream s(str);
+				if (cmd == "newmtl")
+				{
+					scene->MatieralArray.push_back(curMat);
+					string mtlname;
+					s >> mtlname;
+					curMat = new Matieral(mtlname);	
+				}
+				else if (cmd == "Ka")  //ambient
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						curMat->ambient = MyColor(values[0], values[1], values[2],0);
+					}
+				}
+				else if (cmd == "Kd") //diffuse
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						curMat->diffuse = MyColor(values[0], values[1], values[2], 0);
+					}
+				}
+				else if (cmd == "Ks") //specular
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						curMat->specular = MyColor(values[0], values[1], values[2], 0);
+					}
+				}
+				else if (cmd == "Ke") //emission
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						curMat->ambient = MyColor(values[0], values[1], values[2], 0);
+					}
+				}
+				else if (cmd == "Tf") //transmission filter
+				{
+
+				}
+				else if (cmd == "illum") //Light Model
+				{
+					/*
+					model           Property Editor
+
+					0		Color on and Ambient off
+					1		Color on and Ambient on
+					2		Highlight on
+					3		Reflection on and Ray trace on
+					4		Transparency: Glass on
+					Reflection: Ray trace on
+					5		Reflection: Fresnel on and Ray trace on
+					6		Transparency: Refraction on
+					Reflection: Fresnel off and Ray trace on
+					7		Transparency: Refraction on
+					Reflection: Fresnel on and Ray trace on
+					8		Reflection on and Ray trace off
+					9		Transparency: Glass on
+					Reflection: Ray trace off
+					10		Casts shadows onto invisible surfaces
+					*/
+				}
+				else if (cmd == "d")
+				{
+
+				}
+				else if (cmd == "Ns") //specular highligh
+				{
+
+				}
+				else if (cmd == "Ni")
+				{
+					
+				}
+				else if (cmd == "map_Ka")
+				{
+					string address;
+					s >> address;
+					FIBITMAP* tex = FreeImage_Load(FIF_TARGA, address.data());
+					curMat->map_Ka = new Texture(tex);
+				}
+				else if (cmd == "map_Kd")
+				{
+					string address;
+					s >> address;
+					FIBITMAP* tex = FreeImage_Load(FIF_TARGA, address.data());
+					curMat->map_Kd = new Texture(tex);
+				}
+				else if (cmd == "map_Ks")
+				{
+					string address;
+					s >> address;
+					FIBITMAP* tex = FreeImage_Load(FIF_TARGA, address.data());
+					curMat->map_Ks = new Texture(tex);
+				}
+				else if (cmd == "map_Ns")
+				{
+					
+				}
+
+			}
+		}
+	}
+}
+
+
 void readfile(const char* filename, Scene* scene)
 {
 	if (loadMode == LoadMode::HwLoad)

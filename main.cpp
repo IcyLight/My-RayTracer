@@ -103,16 +103,18 @@ int main()
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
 	
-	//readfile("scene6.test",&curScene);
-	//FIBITMAP* m = Display(curCamera);
-	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
+	readfile("scene6.test",&curScene);
+	FIBITMAP* m = Display(curCamera);
+	FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
 	//readfile("scene7.test");
 	//FIBITMAP* m = Display(curCamera);
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
-	readfile("Test.obj", &curScene);
-	FIBITMAP* m = Display(curCamera);
-	FreeImage_Save(FIF_PNG, m, &curfilename[0]);
+
+
+	//readfile("Test.obj", &curScene);
+	//FIBITMAP* m = Display(curCamera);
+	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
 	
 	

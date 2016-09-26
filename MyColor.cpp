@@ -11,6 +11,10 @@
 		this->G = G;
 		this->A = A;
 	}
+	MyColor::MyColor(RGBQUAD rgb)
+	{
+		MyColor(rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue, rgb.rgbReserved);
+	}
 	MyColor::MyColor() 
 	{
 		this->R = 0;

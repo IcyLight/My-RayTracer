@@ -18,6 +18,7 @@ void readfile(const char* filename,Scene* scene);
 
 void HWload(const char* filename, Scene* scene);
 void Objload(const char* filename, Scene* scene);
+void mtlLoad(const char* filename);
 
 enum LoadMode
 {
