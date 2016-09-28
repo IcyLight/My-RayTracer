@@ -9,11 +9,11 @@
 
 const float DefaultLightIntensity = 1;
 
-Scene curScene = Scene(100,1);
-Camera curCamera = Camera();
+Scene* curScene;
+Camera HWCamera = Camera();
 stack<MyTransform> TransformStack = stack<MyTransform>();
 
-vec3 LightModelConstant = vec3(1, 0.1, 0.05);  //光照模型中光强随距离衰减公式的三个参数c1,c2,c3
+vec3 LightModelConstant = vec3(1, 0, 0);  //光照模型中光强随距离衰减公式的三个参数c1,c2,c3
 MyTransform LookAtTrans;
 
 
@@ -36,7 +36,7 @@ MyColor Scene::Raycast(Ray ray)
 	vector<MyHit> SceneHits;
 	//注意vector存储时会切掉子类“多余”的部分，导致虚函数失效，参见http://stackoverflow.com/questions/16872584/virtual-functions-and-vector-iterator
 	//此处引用vector保存指针
-	for (vector<Geometry*>::iterator i = curScene.GeometryArray.begin(); i != curScene.GeometryArray.end(); i++)  
+	for (vector<Geometry*>::iterator i = curScene->GeometryArray.begin(); i != curScene->GeometryArray.end(); i++)  
 	{
 		HitPoints hps = (*i)->Intersect(ray);
 		for (int x = 0; x < hps.PointCount; x++)
@@ -51,7 +51,7 @@ MyColor Scene::Raycast(Ray ray)
 		}
 
 	}
-
+	int i = SceneHits.size();
 	sort(SceneHits.begin(), SceneHits.end());
 	if (SceneHits.empty())
 	{
@@ -64,10 +64,11 @@ MyColor Scene::Raycast(Ray ray)
 
 MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视角空间中获取颜色
 {
-	const MyColor& diffuse = geometry->m->diffuse;
-	const MyColor& specular = geometry->m->specular;
+	MyColor ambient = geometry->m->GetMapColor(MapType::ambientMap, hit.uvw);
+	MyColor diffuse = geometry->m->GetMapColor(MapType::diffuseMap, hit.uvw);
+	MyColor specular = geometry->m->GetMapColor(MapType::specularMap, hit.uvw);
+
 	const MyColor& emission = geometry->m->emission;
-	const MyColor& ambient = geometry->m->ambient;
 	const float&  shininess = geometry->m->shininess;
 	vec3& hitpos = hit.position;
 	vec3& normal = hit.normal;
@@ -78,28 +79,30 @@ MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视
 
 
 
-	for (vector<Light>::iterator i = curScene.LightArray.begin(); i != curScene.LightArray.end(); i++)
+	for (vector<Light*>::iterator i = curScene->LightArray.begin(); i != curScene->LightArray.end(); i++)
 	{
 		
 
-		
+		const Light* light = *i;
 
-		if (i->type == LightType::Point )
+		if (light->type == LightType::Point )
 		{
 
-			vec3 lightIn = hitpos - i->pos;
+			vec3 lightIn = hitpos - light->pos;
 			float distance = vecLength(lightIn);
 			lightIn = normalize(lightIn);
-			if (visibile(Ray(hitpos + normalize(-lightIn)*0.001f, -lightIn, RecursiveMaxDepth,MaxRayDepth),&(*i)))
+			if (visibile(Ray(hitpos + normalize(-lightIn)*0.001f, -lightIn, RecursiveMaxDepth,MaxRayDepth),light))
 			{
 				vec3 H = normalize(-ray.dirction - lightIn);
-				float disFactor = i->Intensity / (LightModelConstant.x + LightModelConstant.y *distance + LightModelConstant.z *distance *distance);
+				float disFactor = light->Intensity / (LightModelConstant.x + LightModelConstant.y *distance + LightModelConstant.z *distance *distance);
 				//Debug用
+				/*
 				float fgh = disFactor * glm::max(dot(normal, -lightIn), 0.f);
 				float Hndot = dot(H, normal);
 				float nldot = dot(normal, -lightIn);
+				*/
 				//
-				MyColor LightColor = i->color;
+				MyColor LightColor = light->color;
 				MyColor diffuseColor = LightColor* ( diffuse* disFactor * glm::max(dot(normal, -lightIn), 0.f) );
 				MyColor specularColor = LightColor * ( specular* disFactor*pow(glm::max(dot(H, normal), 0.f), shininess) );
 
@@ -107,25 +110,24 @@ MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视
 				
 			}
 		}
-		else if (i->type == LightType::Dirctional)
+		else if (light->type == LightType::Dirctional)
 		{
 			
-			vec3 lightIn = -i->pos;
+			vec3 lightIn = normalize(light->pos);  
 			vec3 H = normalize(-ray.dirction - lightIn);
-			//MyColor l1 = diffuse*glm::max(dot(normal, -lightIn), 0.f);
-			//MyColor l2 = specular*pow(glm::max(dot(H, normal), 0.f), shininess);
-			//MyColor LightColor = diffuse*glm::max(dot(normal, -lightIn), 0.f) + specular*pow(glm::max(dot(H, normal), 0.f), shininess);  //光照模型
-			MyColor LightColor = i->color;
+			MyColor LightColor = light->color;
 			MyColor diffuseColor = LightColor* diffuse *glm::max(dot(normal, -lightIn), 0.f);
 			MyColor specularColor = LightColor * specular*pow(glm::max(dot(H, normal), 0.f), shininess);
 			
+
 			PointColor = PointColor + diffuseColor + specularColor;
 			
+			
 		}
-		else if (i->type == LightType::ambient)
+		else if (light->type == LightType::ambient)
 		{
 			
-			PointColor = PointColor + i->color;
+			PointColor = PointColor + light->color;
 		}
 	}
 
@@ -143,18 +145,17 @@ MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视
 		PointColor = PointColor + specular*Raycast(Ray(hitpos + re*0.001f, re, ray.RecurCount + 1, MaxRayDepth));
 		//注意reflect的参数I是入射方向的反向
 	}
-
 	
 	return PointColor;
 }
 
 
-bool Scene::visibile(Ray ray,Light* light)
+bool Scene::visibile(Ray ray,const Light* light)
 {
 	float OLdis = vecLength(light->pos - ray.origin);
 
 	vector<MyHit> SceneHits;
-	for (vector<Geometry*>::iterator i = curScene.GeometryArray.begin(); i != curScene.GeometryArray.end(); i++)
+	for (vector<Geometry*>::iterator i = curScene->GeometryArray.begin(); i != curScene->GeometryArray.end(); i++)
 	{
 		HitPoints hps = (*i)->Intersect(ray);
 		for (int x = 0; x < hps.PointCount; x++)

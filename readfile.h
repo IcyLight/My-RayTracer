@@ -11,17 +11,18 @@
 
 
 extern string curfilename;
-
+enum LoadMode
+{
+	HwLoad, ObjLoad
+};
 bool readvals(stringstream &s, const int numvals, float* values);
 
-void readfile(const char* filename,Scene* scene);
+void readfile(const char* filename, Scene* scene, LoadMode loadMode);
 
 void HWload(const char* filename, Scene* scene);
 void Objload(const char* filename, Scene* scene);
+void mtlLoad(const char* filename, Scene* scene);
 
-enum LoadMode
-{
-	HwLoad,ObjLoad
-};
-extern LoadMode loadMode;
+
+
 

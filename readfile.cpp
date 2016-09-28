@@ -3,7 +3,7 @@
 
 string curfilename;
 
-LoadMode loadMode = LoadMode::ObjLoad;
+//LoadMode loadMode = LoadMode::HwLoad;
 
 bool readvals(stringstream &s, const int numvals, float* values)
 {
@@ -22,7 +22,7 @@ void HWload(const char* filename, Scene* scene)
 	ifstream in;
 	in.open(filename);
 	if (in.is_open()) {
-		Matieral defaultMatieral;
+		Matieral curMatieral;
 		TransformStack.push(MyTransform(mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)));
 		getline(in, str);
 		while (in) {
@@ -42,7 +42,7 @@ void HWload(const char* filename, Scene* scene)
 					validinput = readvals(s, 6, values); // Position/color for lts.
 					if (validinput)
 					{
-						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3], values[4], values[5], 0), LightType::Point);
+						Light* l = new Light(vec3(values[0], values[1], values[2]), MyColor(values[3], values[4], values[5], 0), LightType::Point);
 						scene->LightArray.push_back(l);
 					}
 
@@ -53,7 +53,7 @@ void HWload(const char* filename, Scene* scene)
 					if (validinput)
 					{
 						//原本的光的位置向量作为方向向量
-						Light l = Light(vec3(values[0], values[1], values[2]), MyColor(values[3], values[4], values[5], 0), LightType::Dirctional);
+						Light* l = new Light(vec3(values[0], values[1], values[2]), MyColor(values[3], values[4], values[5], 0), LightType::Dirctional);
 						scene->LightArray.push_back(l);
 					}
 				}
@@ -62,8 +62,8 @@ void HWload(const char* filename, Scene* scene)
 					validinput = readvals(s, 3, values); // Position/color for lts.
 					if (validinput)
 					{
-						//scene->defaultMatieral.ambient = MyColor((BYTE)((BYTE)(values[0] * 255)), (BYTE)((BYTE)(values[1] * 255)), (BYTE)((BYTE)(values[2] * 255)), 0);
-						scene->defaultMatieral.ambient = MyColor(values[0], values[1], values[2], 0);
+						//curMatieral.ambient = MyColor((BYTE)((BYTE)(values[0] * 255)), (BYTE)((BYTE)(values[1] * 255)), (BYTE)((BYTE)(values[2] * 255)), 0);
+						curMatieral.ambient = MyColor(values[0], values[1], values[2], 0);
 						/*
 						Light l = Light(vec3(0,0,0), MyColor( (BYTE)(values[0] * 255),(BYTE)(values[1] * 255),(BYTE)(values[2] * 255),0 ), DefaultLightIntensity, LightType::ambient);
 						scene->LightArray.push_back(l);
@@ -75,8 +75,8 @@ void HWload(const char* filename, Scene* scene)
 					if (validinput)
 					{
 
-						//scene->defaultMatieral.diffuse = MyColor( (BYTE)((BYTE)(values[0] * 255)), (BYTE)((BYTE)(values[1] * 255)), (BYTE)((BYTE)(values[2] * 255)),0 );
-						scene->defaultMatieral.diffuse = MyColor(values[0], values[1], values[2], 0);
+						//curMatieral.diffuse = MyColor( (BYTE)((BYTE)(values[0] * 255)), (BYTE)((BYTE)(values[1] * 255)), (BYTE)((BYTE)(values[2] * 255)),0 );
+						curMatieral.diffuse = MyColor(values[0], values[1], values[2], 0);
 					}
 
 
@@ -86,8 +86,8 @@ void HWload(const char* filename, Scene* scene)
 					if (validinput)
 					{
 
-						//scene->defaultMatieral.specular = MyColor( (BYTE)(values[0] * 255), (BYTE)(values[1] * 255), (BYTE)(values[2] * 255),0 );
-						scene->defaultMatieral.specular = MyColor(values[0], values[1], values[2], 0);
+						//curMatieral.specular = MyColor( (BYTE)(values[0] * 255), (BYTE)(values[1] * 255), (BYTE)(values[2] * 255),0 );
+						curMatieral.specular = MyColor(values[0], values[1], values[2], 0);
 					}
 				}
 				else if (cmd == "emission") {
@@ -95,8 +95,8 @@ void HWload(const char* filename, Scene* scene)
 					if (validinput)
 					{
 
-						//scene->defaultMatieral.emission = MyColor( (BYTE)(values[0] * 255), (BYTE)(values[1] * 255), (BYTE)(values[2] * 255),0 );
-						scene->defaultMatieral.emission = MyColor(values[0], values[1], values[2], 0);
+						//curMatieral.emission = MyColor( (BYTE)(values[0] * 255), (BYTE)(values[1] * 255), (BYTE)(values[2] * 255),0 );
+						curMatieral.emission = MyColor(values[0], values[1], values[2], 0);
 					}
 				}
 				else if (cmd == "shininess") {
@@ -104,22 +104,22 @@ void HWload(const char* filename, Scene* scene)
 					if (validinput)
 					{
 
-						scene->defaultMatieral.shininess = values[0];
+						curMatieral.shininess = values[0];
 					}
 				}
 				else if (cmd == "size") {
 					validinput = readvals(s, 2, values); // Position/color for lts.
 					if (validinput)
 					{
-						curCamera.ScreenWidth = values[0];
-						curCamera.ScreenHeight = values[1];
+						HWCamera.ScreenWidth = values[0];
+						HWCamera.ScreenHeight = values[1];
 					}
 				}
 				else if (cmd == "camera") {
 					validinput = readvals(s, 10, values); // Position/color for lts.
 					if (validinput)
 					{
-						curCamera = Camera(values[9], values[9], 1, vec3(values[0], values[1], values[2]), vec3(values[3], values[4], values[5]), vec3(values[6], values[7], values[8]));
+						HWCamera = Camera(values[9], values[9], 1, vec3(values[0], values[1], values[2]), vec3(values[3], values[4], values[5]), vec3(values[6], values[7], values[8]));
 					}
 				}
 
@@ -127,7 +127,7 @@ void HWload(const char* filename, Scene* scene)
 
 					if (cmd == "sphere")
 					{
-						scene->MatieralArray.push_back(new Matieral(scene->defaultMatieral));
+						scene->MatieralArray.push_back(new Matieral(curMatieral));
 						validinput = readvals(s, 4, values); // Position/color for lts.
 						if (validinput)
 						{
@@ -143,18 +143,18 @@ void HWload(const char* filename, Scene* scene)
 						validinput = readvals(s, 3, values); // Position/color for lts.
 						if (validinput)
 						{
-							Vertex vertex = Vertex(vec3(values[0], values[1], values[2]));
+							Vertex* vertex = new Vertex(vec3(values[0], values[1], values[2]));
 							scene->vertexArray.push_back(vertex);
 						}
 					}
 					else if (cmd == "tri")
 					{
 
-						scene->MatieralArray.push_back(new Matieral(scene->defaultMatieral));
+						scene->MatieralArray.push_back(new Matieral(curMatieral));
 						validinput = readvals(s, 3, values); // Position/color for lts.
 						if (validinput)
 						{
-							Triangle* tri = new Triangle(&scene->vertexArray[values[0]], &scene->vertexArray[values[1]], &scene->vertexArray[values[2]], scene->MatieralArray[scene->MatieralArray.size() - 1], TransformStack.top());
+							Triangle* tri = new Triangle(scene->vertexArray[values[0]], scene->vertexArray[values[1]], scene->vertexArray[values[2]], scene->MatieralArray[scene->MatieralArray.size() - 1], TransformStack.top());
 							//scene->triArray.push_back(tri);
 							scene->GeometryArray.push_back(tri);
 						}
@@ -234,10 +234,11 @@ void HWload(const char* filename, Scene* scene)
 void Objload(const char* filename, Scene* scene)
 {
 	string str, cmd;
-	ifstream in;
+	ifstream in ;
+	
 	in.open(filename);
 	if (in.is_open()) {
-		Matieral defaultMatieral;
+		Matieral* curMatieral = nullptr;
 		TransformStack.push(MyTransform(mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)));
 		getline(in, str);
 		float values[9];
@@ -249,25 +250,25 @@ void Objload(const char* filename, Scene* scene)
 
 				if (cmd == "f")
 				{
-					scene->MatieralArray.push_back(new Matieral(scene->defaultMatieral));
+					//scene->MatieralArray.push_back(new Matieral(curMatieral));
 					for (int i = 0; i < 3; i++)
 					{
-						Vertex vet;
+						Vertex* vet;
 						int pos, uv, nor;
 						string st;
 						s >> st;
 						sscanf(&st[0], "%d/%d/%d", &pos, &uv, &nor);
-						vet = Vertex( scene->vPosArray[pos-1], scene->vUVArray[uv-1], scene->vNorArray[nor-1]);
+						vet = new Vertex( scene->vPosArray[pos-1], scene->vUVArray[uv-1], scene->vNorArray[nor-1]);
 						scene->vertexArray.push_back(vet);
 						int u = 0;
 					}
 					int top = scene->vertexArray.size();
-					Vertex* v1 = &scene->vertexArray[top - 1];
-					Vertex* v2 = &scene->vertexArray[top - 2];
-					Vertex* v3 = &scene->vertexArray[top - 3];
+					Vertex* v1 = scene->vertexArray[top - 1];
+					Vertex* v2 = scene->vertexArray[top - 2];
+					Vertex* v3 = scene->vertexArray[top - 3];
 					Triangle* t = new Triangle(
 						v1,v2,v3,
-						scene->MatieralArray[scene->MatieralArray.size() - 1], TransformStack.top());
+						curMatieral, TransformStack.top());
 					scene->GeometryArray.push_back(t);
 				}
 				else if (cmd == "v")
@@ -297,16 +298,173 @@ void Objload(const char* filename, Scene* scene)
 					}
 
 				}
+				else if (cmd =="mtllib")
+				{
+					string mtlAddress;
+					s >> mtlAddress;
+					mtlLoad(mtlAddress.data(), scene);
+				}
 				else if (cmd == "usemtl")
+				{
+					string mtlname;
+					s >> mtlname;
+					bool flag = false;
+					for (vector<Matieral*>::iterator i = scene->MatieralArray.begin(); i != scene->MatieralArray.end(); i++)
+					{
+						if ((*i)->name == mtlname)
+						{
+							curMatieral = *i;
+							flag = true;
+						}
+					}
+					if (!flag)
+					{
+
+					}
+				}
+			}
+			getline(in, str);
+		}
+
+	}
+}
+
+void mtlLoad(const char* filename, Scene* scene)
+{
+	string str, cmd;
+	ifstream in;
+	in.open(filename);
+	if (in.is_open()) {
+		getline(in, str);
+		float values[9];
+		Matieral* loadingMat = NULL;
+		while (in) {
+			if ((str.find_first_not_of(" \t\r\n") != string::npos) && (str[0] != '#'))
+			{
+				stringstream s(str);
+				s >> cmd;
+				if (cmd == "newmtl")
+				{
+					string mtlname;
+					s >> mtlname;
+					loadingMat = new Matieral(mtlname);
+					scene->MatieralArray.push_back(loadingMat);
+
+
+				}
+				else if (cmd == "Ka")  //ambient
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						loadingMat->ambient = MyColor(values[0], values[1], values[2],0);
+					}
+				}
+				else if (cmd == "Kd") //diffuse
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						loadingMat->diffuse = MyColor(values[0], values[1], values[2], 0);
+					}
+				}
+				else if (cmd == "Ks") //specular
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						loadingMat->specular = MyColor(values[0], values[1], values[2], 0);
+					}
+				}
+				else if (cmd == "Ke") //emission
+				{
+					bool validinput = readvals(s, 3, values);
+					if (validinput)
+					{
+						loadingMat->ambient = MyColor(values[0], values[1], values[2], 0);
+					}
+				}
+				else if (cmd == "Tf") //transmission filter
 				{
 
 				}
+				else if (cmd == "illum") //Light Model
+				{
+					/*
+					model           Property Editor
+
+					0		Color on and Ambient off
+					1		Color on and Ambient on
+					2		Highlight on
+					3		Reflection on and Ray trace on
+					4		Transparency: Glass on
+					Reflection: Ray trace on
+					5		Reflection: Fresnel on and Ray trace on
+					6		Transparency: Refraction on
+					Reflection: Fresnel off and Ray trace on
+					7		Transparency: Refraction on
+					Reflection: Fresnel on and Ray trace on
+					8		Reflection on and Ray trace off
+					9		Transparency: Glass on
+					Reflection: Ray trace off
+					10		Casts shadows onto invisible surfaces
+					*/
+				}
+				else if (cmd == "d")
+				{
+
+				}
+				else if (cmd == "Ns") //specular highligh
+				{
+
+				}
+				else if (cmd == "Ni")
+				{
+					
+				}
+				else if (cmd == "map_Ka")
+				{
+					string address;
+					s >> address;
+					FIBITMAP* tex = FreeImage_Load(FIF_TARGA, address.data());
+					loadingMat->map_Ka = new Texture(tex);
+				}
+				else if (cmd == "map_Kd")
+				{
+					string address;
+					s >> address;
+					
+					FIBITMAP* tex = FreeImage_Load(FIF_PNG, address.data());
+
+					/*Debug
+					RGBQUAD rgb = RGBQUAD();
+					FreeImage_GetPixelColor(tex, 35.5, 0.5, &rgb);
+					printf("%d %d %d", rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue);				
+					*/
+
+
+					loadingMat->map_Kd = new Texture(tex);
+				}
+				else if (cmd == "map_Ks")
+				{
+					string address;
+					s >> address;
+					FIBITMAP* tex = FreeImage_Load(FIF_TARGA, address.data());
+					loadingMat->map_Ks = new Texture(tex);
+				}
+				else if (cmd == "map_Ns")
+				{
+					
+				}
+
 			}
 			getline(in, str);
 		}
 	}
 }
-void readfile(const char* filename, Scene* scene)
+
+
+void readfile(const char* filename, Scene* scene,LoadMode loadMode)
 {
 	if (loadMode == LoadMode::HwLoad)
 	{
