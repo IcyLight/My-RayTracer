@@ -42,10 +42,10 @@ public:
 	//vector<Sphere> sphArray;
 	//vector<Triangle> triArray;
 	vector<Geometry*> GeometryArray;
-	vector<Light> LightArray;
-	vector<Vertex> vertexArray;
+	vector<Light*> LightArray;
+	vector<Vertex*> vertexArray;
 	vector<Matieral*> MatieralArray;
-	Matieral defaultMatieral;
+	//Matieral defaultMatieral;
 
 	vector<vec3> vPosArray;
 	vector<vec3> vNorArray;
@@ -54,7 +54,7 @@ public:
 	
 	MyColor Raycast(Ray ray);
 	MyColor GetColor(HitPoint hit,  Ray ray, const Geometry* geometry);
-	bool visibile(Ray ray,Light* light);
+	bool visibile(Ray ray,const Light* light);
 	Ray RayThurPixel(Camera cam, int j, int i, float w);
 	Scene(float MaxRayDepth, int RecursiveMaxDepth);
 
@@ -68,8 +68,8 @@ MyColor Raycast(Ray ray);
 
 
 
-extern Scene curScene ;
-extern Camera curCamera ;
+extern Scene* curScene ;
+extern Camera HWCamera ;
 extern stack<MyTransform> TransformStack ;
 extern vec3 LightModelConstant ;  //光照模型中光强随距离衰减公式的三个参数c1,c2,c3
 extern MyTransform LookAtTrans;

@@ -34,14 +34,14 @@ FIBITMAP* Display(Camera cam)
 
 	mat4 LookAtMat = lookAt(cam.lookFrom, cam.lookAt, cam.up); 
 	LookAtTrans = MyTransform(LookAtMat);
-	for (vector<Geometry*>::iterator i = curScene.GeometryArray.begin(); i != curScene.GeometryArray.end(); i++)
+	for (vector<Geometry*>::iterator i = curScene->GeometryArray.begin(); i != curScene->GeometryArray.end(); i++)
 	{
 		(*i)->transform.trans = LookAtTrans.trans* (*i)->transform.trans; 
 		
 	}
-	for (vector<Light>::iterator i = curScene.LightArray.begin(); i != curScene.LightArray.end(); i++)
+	for (vector<Light*>::iterator i = curScene->LightArray.begin(); i != curScene->LightArray.end(); i++)
 	{
-		LookAtTrans.AffineTrans(i->pos);
+		LookAtTrans.AffineTrans((*i)->pos);
 	}
 	
 
@@ -50,10 +50,10 @@ FIBITMAP* Display(Camera cam)
 		for (int j = 0; j < cam.ScreenWidth; j++)
 		{
 			
-			Ray r = curScene.RayThurPixel(cam, j, i, 1);
+			Ray r = curScene->RayThurPixel(cam, j, i, 1);
 
 
-			MyColor color = curScene.Raycast(r);
+			MyColor color = curScene->Raycast(r);
 
 			
 			FreeImage_SetPixelColor(m, j, i, &(color.GetRBGQUAD()) );
@@ -73,53 +73,55 @@ int main()
 {
 	mat4 tmd = mat4(1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4);
 	mat3 j = mat3(tmd);
-	curScene = Scene(100, 1);;
-	vec3 eye = vec3(0.5, 0, 0);
+	curScene = new Scene(100, 1);;
+	vec3 eye = vec3(0, 0, 20);
 	vec3 center = vec3(0, 0, -1);
 	vec3 up = vec3(0, 1, 0);
-
+	Camera cam = Camera(60, 60, 1, eye, center, up);
 	//readfile("scene4-ambient.test");
-	//FIBITMAP* m = Display(curCamera);
+	//FIBITMAP* m = Display(HWCamera);
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
 	//readfile("scene4-diffuse.test");
-	//FIBITMAP* m = Display(curCamera);
+	//FIBITMAP* m = Display(HWCamera);
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
 	//readfile("scene4-emission.test");
-	//FIBITMAP* m = Display(curCamera);
+	//FIBITMAP* m = Display(HWCamera);
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
 	//readfile("scene4-specular.test");
-	//FIBITMAP* m = Display(curCamera);
+	//FIBITMAP* m = Display(HWCamera);
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
-	//readfile("scene4-specular.test");
-	//FIBITMAP* m = Display(curCamera);
+	//readfile("scene4-specular.test",&curScene);
+	//FIBITMAP* m = Display(HWCamera);
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
 	//readfile("scene5.test");
-	//FIBITMAP* m = Display(curCamera);
+	//FIBITMAP* m = Display(HWCamera);
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
 	
-	readfile("scene6.test",&curScene);
-	FIBITMAP* m = Display(curCamera);
-	FreeImage_Save(FIF_PNG, m, &curfilename[0]);
+	//readfile("scene6.test",&curScene);
+	//FIBITMAP* m = Display(HWCamera);
+	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
 	//readfile("scene7.test");
-	//FIBITMAP* m = Display(curCamera);
+	//FIBITMAP* m = Display(HWCamera);
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
-
-	//readfile("Test.obj", &curScene);
-	//FIBITMAP* m = Display(curCamera);
-	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
+	string address = string("chr_old.obj");
+	readfile(address.data(), curScene,LoadMode::ObjLoad);
+	Light* l = new Light(normalize(cam.lookAt - cam.lookFrom), MyColor(1, 1, 1, 1), LightType::Dirctional);
+	curScene->LightArray.push_back(l);
+	FIBITMAP* m = Display(cam);
+	FreeImage_Save(FIF_PNG, m, "Test.png");
 
 	
 	
 
-	//Camera cam = Camera(60, 60, 1,eye,center,up);
+	
 	
 	//FIBITMAP* m = FreeImage_Allocate(1024, 1024, 24);
 	

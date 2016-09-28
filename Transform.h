@@ -1,8 +1,8 @@
 #pragma once
 #include "lib\glm\glm\glm.hpp"
 #define FLOATOFFSET 0.001
-#define RECURSIVE 1
-#define NORMALINTERPOLATION 0
+#define RECURSIVE 0
+#define NORMALINTERPOLATION 1
 using namespace glm;
 
 mat4 Rotate(float degrees, vec3 axis);

@@ -15,3 +15,47 @@ Matieral::Matieral(MyColor diffuse, MyColor specular, MyColor emission, MyColor 
 	this->map_Ks = map_Ks;
 
 }
+
+
+MyColor Matieral::GetMapColor(MapType type, vec3 uvw)
+{
+	
+	switch (type)
+	{
+	case ambientMap:
+		if (this->map_Ka != nullptr)
+		{
+			 return map_Ka->GetColor(uvw)*this->ambient;
+		}
+		else
+		{
+			return ambient;
+		}
+		break;
+	case diffuseMap:
+		if (this->map_Kd != nullptr)
+		{
+			return map_Kd->GetColor(uvw)*this->diffuse;
+		}
+		else
+		{
+			return diffuse;
+		}
+		break;
+	case specularMap:
+		if (this->map_Ks != nullptr)
+		{
+			return map_Ks->GetColor(uvw)*this->specular;
+		}
+		else
+		{
+			return specular;
+		}
+		break;
+	case normalMap:
+		return MyColor();
+		break;
+	default:
+		break;
+	}
+}
