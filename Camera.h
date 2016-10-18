@@ -10,8 +10,8 @@ public:
 	vec3 lookAt;
 	vec3 up;
 
-	int ScreenWidth = 128;
-	int ScreenHeight = 128;
+	int ScreenWidth;
+	int ScreenHeight;
 
 
 	Camera(float FOVx, float FOVy, float near, vec3 lookFrom, vec3 lookAt, vec3 up, float ScreenWidth = 800, float ScreenHeight = 600);

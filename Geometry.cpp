@@ -66,7 +66,7 @@ HitPoints Sphere::Intersect(Ray ray)
 		if (k1 < 0 && k2 < 0)
 
 		{
-			//spHit.hps[0]= HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite, NULL);
+			//spHit.hps[0]= HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite, nullptr);
 			return spHit;
 
 		}
@@ -109,7 +109,7 @@ HitPoints Sphere::Intersect(Ray ray)
 			if (inSphere)
 			{
 				//在圆内时，法向量反向, 反向相交点看作是无限远的点
-				//spHit.push(HitPoint(front_hitpos, -front_normal, front_depth, GeometryType::infinite, NULL));
+				//spHit.push(HitPoint(front_hitpos, -front_normal, front_depth, GeometryType::infinite, nullptr));
 
 				spHit.push(HitPoint(back_hitpos, -back_normal,uvw, back_depth, GeometryType::sph));
 
@@ -125,7 +125,7 @@ HitPoints Sphere::Intersect(Ray ray)
 	}
 	else
 	{
-		//spHit.hps[0] = HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite,NULL);
+		//spHit.hps[0] = HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite,nullptr);
 
 	}
 
@@ -139,6 +139,7 @@ Triangle::Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransfo
 	this->a = _vA;
 	this->b = _vB;
 	this->c = _vC;
+	this->faceNormal = normalize(cross(c->pos - a->pos, b->pos - a->pos));
 	this->m = m;
 	this->transform = transform;
 }
@@ -156,12 +157,8 @@ HitPoints Triangle::Intersect(Ray ray)
 	vec3& va = this->a->pos;
 	vec3& vb = this->b->pos;
 	vec3& vc = this->c->pos;
-	vec3 faceNormal = normalize(cross(vc - va, vb - va));  //两面的法线选择和入射光同一面的
-	if (dot(faceNormal, ray.dirction) > 0)
-	{
-		faceNormal *= -1;
-	}
-	float denominator = dot(d, faceNormal);
+	vec3 IntFaceNormal = dot(faceNormal, ray.dirction) < 0 ? faceNormal : -faceNormal;  //两面的法线选择和入射光同一面的
+	float denominator = dot(d, IntFaceNormal);
 	if (abs(denominator) < FLOATOFFSET) //平行的时候
 	{
 		return triHit;
@@ -174,7 +171,7 @@ HitPoints Triangle::Intersect(Ray ray)
 		float t = (dot(va, normal) - dot(o, normal)) / denominator;
 		if (t < 0)
 		{
-			//HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite, NULL);
+			//HitPoint(vec3(0, 0, 0), vec3(0, 0, 0), 1, GeometryType::infinite, nullptr);
 
 			return triHit;
 		}
@@ -239,10 +236,17 @@ HitPoints Triangle::Intersect(Ray ray)
 			{
 				normal = (1 - u - v)*a->normal + u*b->normal + v*c->normal;
 				uvw = (1 - u - v)*a->uvw + u*b->uvw + v*c->uvw;
+
+				/*Debug
+				printf("a %f %f %f\n", a->uvw.x, a->uvw.y, a->uvw.z);
+				printf("b %f %f %f\n", b->uvw.x, b->uvw.y, b->uvw.z);
+				printf("c %f %f %f\n", c->uvw.x, c->uvw.y, c->uvw.z);
+				printf("uvw %f %f %f\n\n", uvw.x, uvw.y, uvw.z);
+				*/
 			}
 			else
 			{
-				normal = faceNormal;
+				normal = IntFaceNormal;
 				uvw = vec3(0, 0, 0);
 			}
 

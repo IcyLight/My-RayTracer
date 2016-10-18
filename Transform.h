@@ -2,7 +2,7 @@
 #include "lib\glm\glm\glm.hpp"
 #define FLOATOFFSET 0.001
 #define RECURSIVE 1
-#define NORMALINTERPOLATION 0
+#define NORMALINTERPOLATION 1
 using namespace glm;
 
 mat4 Rotate(float degrees, vec3 axis);
@@ -22,6 +22,7 @@ double dvecLength(vec3 v);
 
 struct MyTransform
 {
+	
 	mat4 trans;
 	void AffineTrans(vec3& v); //仿射变换
 	void NormalTrans(vec3& v); //对法线变换
