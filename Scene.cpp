@@ -18,22 +18,23 @@ MyTransform LookAtTrans;
 
 
 
-Scene::Scene(float MaxRayDepth, int RecursiveMaxDepth)
+Scene::Scene(float MaxRayDepth, int RecursiveMaxDepth,RenderMode renderMode)
 {
 	this->MaxRayDepth = MaxRayDepth;
 	this->RecursiveMaxDepth = RecursiveMaxDepth;
+	this->renderMode = renderMode;
 }
 
-MyColor Scene::Raycast(Ray ray)
+MyColor Scene::Raycast(const Ray* ray) const
 {
-	if (ray.RecurCount > RecursiveMaxDepth)
+	if (ray->RecurCount > RecursiveMaxDepth)
 	{
 		return MyColor{ 0,0,0,0 };
 	}
 	
 
 	vector<MyHit> SceneHits;
-	for (vector<Geometry*>::iterator i = GeometryArray.begin(); i != GeometryArray.end(); i++)  
+	for (vector<Geometry*>::const_iterator i = GeometryArray.cbegin(); i != GeometryArray.end(); i++)  
 	{
 		HitPoints hps = (*i)->Intersect(ray);
 		for (int x = 0; x < hps.PointCount; x++)
@@ -54,21 +55,50 @@ MyColor Scene::Raycast(Ray ray)
 	{
 		return MyColor(0, 0, 0, 0);
 	}
-	MyColor color = GetColor(SceneHits[0].hp, ray,SceneHits[0].obj);
+	MyColor color = GetColor(&SceneHits[0].hp, ray,SceneHits[0].obj);
 
 	return color;
 }
 
-MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视角空间中获取颜色
+MyColor Scene::GetColor(const HitPoint* hit, const Ray* ray, const Geometry* geometry) const  //在视角空间中获取颜色
 {
-	MyColor ambient = geometry->m->GetMapColor(MapType::ambientMap, hit.uvw);
-	MyColor diffuse = geometry->m->GetMapColor(MapType::diffuseMap, hit.uvw);
-	MyColor specular = geometry->m->GetMapColor(MapType::specularMap, hit.uvw);
+	MyColor ambient = geometry->m->GetMapColor(MapType::ambientMap, hit->uvw);
+	MyColor diffuse = geometry->m->GetMapColor(MapType::diffuseMap, hit->uvw);
+	MyColor specular = geometry->m->GetMapColor(MapType::specularMap, hit->uvw);
 
 	const MyColor& emission = geometry->m->emission;
 	const float&  shininess = geometry->m->shininess;
-	vec3& hitpos = hit.position;
-	vec3& normal = hit.normal;
+	const vec3& hitpos = hit->position;
+
+	vec3 normal;
+	if (renderMode == RenderMode::VertexNormalMode)
+	{
+		normal = hit->normal;
+	}
+	else if (renderMode == RenderMode::NormalMapMode)
+	{
+
+
+
+		//MyTransform T2WTrans = geometry->GetT2WMatrix(hit->uvw);
+		
+		MyTransform invr = geometry->transform.MyInverse();
+
+		normal = hit->normal;
+		vec3 Mpos = hit->position;
+
+		invr.AffineTrans(Mpos);
+		invr.NormalTrans(normal);
+		
+		MyTransform T2WTrans = geometry->GetT2WMatrix(hit->uvw,Mpos, normal);
+
+		MyTransform T2VTransfrom = geometry->transform*T2WTrans;
+
+		normal = (vec3)geometry->m->GetMapColor(MapType::normalMap, hit->uvw);
+		T2VTransfrom.NormalTrans(normal);
+
+	}
+	
 
 
 	MyColor PointColor = emission + ambient;
@@ -76,7 +106,7 @@ MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视
 
 
 
-	for (vector<Light*>::iterator i = LightArray.begin(); i != LightArray.end(); i++)
+	for (vector<Light*>::const_iterator i = LightArray.cbegin(); i != LightArray.cend(); i++)
 	{
 		
 
@@ -88,9 +118,9 @@ MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视
 			vec3 lightIn = hitpos - light->pos;
 			float distance = vecLength(lightIn);
 			lightIn = normalize(lightIn);
-			if (visibile(Ray(hitpos + normalize(-lightIn)*0.001f, -lightIn, RecursiveMaxDepth,MaxRayDepth),light))
+			if (visibile(&Ray(hitpos + normalize(-lightIn)*0.001f, -lightIn, RecursiveMaxDepth,MaxRayDepth),light))
 			{
-				vec3 H = normalize(-ray.dirction - lightIn);
+				vec3 H = normalize(-ray->dirction - lightIn);
 				float disFactor = light->Intensity / (LightModelConstant.x + LightModelConstant.y *distance + LightModelConstant.z *distance *distance);
 
 
@@ -108,7 +138,7 @@ MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视
 		{
 			
 			vec3 lightIn = normalize(light->pos);  
-			vec3 H = normalize(-ray.dirction - lightIn);
+			vec3 H = normalize(-ray->dirction - lightIn);
 			MyColor LightColor = light->color;
 			MyColor diffuseColor = LightColor* diffuse *glm::max(dot(normal, -lightIn), 0.f);
 			MyColor specularColor = LightColor * specular*pow(glm::max(dot(H, normal), 0.f), shininess);
@@ -127,8 +157,8 @@ MyColor Scene::GetColor(HitPoint hit, Ray ray, const Geometry* geometry)  //在视
 
 	if (RECURSIVE)
 	{
-		vec3 re = reflect(ray.dirction, normal);
-		PointColor = PointColor + specular*Raycast(Ray(hitpos + re*0.001f, re, ray.RecurCount + 1, MaxRayDepth));
+		vec3 re = reflect(ray->dirction, normal);
+		PointColor = PointColor + specular*Raycast(&Ray(hitpos + re*0.001f, re, ray->RecurCount + 1, MaxRayDepth));
 		//注意reflect的参数I是入射方向的反向
 	}
 	
@@ -140,8 +170,8 @@ void RenderRow(Scene* scene, Camera cam, FIBITMAP* outImage, int rowIndex)
 	for (int j = 0; j < cam.ScreenWidth; j++)
 	{
 
-		Ray r = scene->RayThurPixel(cam, j, rowIndex, 1);
-		MyColor color = scene->Raycast(r);
+		Ray r = scene->RayThurPixel(&cam, j, rowIndex, 1);
+		MyColor color = scene->Raycast(&r);
 		FreeImage_SetPixelColor(outImage, j, rowIndex, &(color.GetRBGQUAD()));
 	}
 }
@@ -155,7 +185,7 @@ FIBITMAP* Display(Camera cam,Scene* scene)
 	LookAtTrans = MyTransform(LookAtMat);
 	for (vector<Geometry*>::iterator i = scene->GeometryArray.begin(); i != scene->GeometryArray.end(); i++)
 	{
-		(*i)->transform.trans = LookAtTrans.trans* (*i)->transform.trans;
+		(*i)->transform = LookAtTrans* (*i)->transform;
 
 	}
 	for (vector<Light*>::iterator i = scene->LightArray.begin(); i != scene->LightArray.end(); i++)
@@ -196,19 +226,19 @@ FIBITMAP* Display(Camera cam,Scene* scene)
 
 
 
-bool Scene::visibile(Ray ray,const Light* light)
+bool Scene::visibile(const Ray* ray,const Light* light) const
 {
-	float OLdis = vecLength(light->pos - ray.origin);
+	float OLdis = vecLength(light->pos - ray->origin);
 
 	vector<MyHit> SceneHits;
-	for (vector<Geometry*>::iterator i = GeometryArray.begin(); i != GeometryArray.end(); i++)
+	for (vector<Geometry*>::const_iterator i = GeometryArray.cbegin(); i != GeometryArray.cend(); i++)
 	{
 		HitPoints hps = (*i)->Intersect(ray);
 		for (int x = 0; x < hps.PointCount; x++)
 		{
 			HitPoint hp = hps.hps[x];
 			MyHit hit = MyHit(hp, *i);
-			if (vecLength(hp.position - ray.origin) < OLdis)
+			if (vecLength(hp.position - ray->origin) < OLdis)
 			{
 
 				SceneHits.push_back(hit);
@@ -230,14 +260,14 @@ bool Scene::visibile(Ray ray,const Light* light)
 
 
 
-Ray Scene::RayThurPixel(Camera cam, int j, int i, float w)
+Ray Scene::RayThurPixel(const Camera* cam, int j, int i, float w) const
 {
 	//vec3 u = (w*tanf(radians(cam.FOVx/2) )*(-ScreenWidth + 2 * j) / ScreenWidth)*vec3(1, 0, 0);
 	//vec3 v = (w*tanf(radians(cam.FOVy/2))*(-ScreenHeight + 2 * i) / ScreenHeight)*vec3(0, 1, 0);
-	float sw = (float)cam.ScreenWidth;
-	float sh = (float)cam.ScreenHeight;
+	float sw = (float)cam->ScreenWidth;
+	float sh = (float)cam->ScreenHeight;
 	float aspect = sw / sh;
-	float H = w*tanf(radians(cam.FOVy / 2));
+	float H = w*tanf(radians(cam->FOVy / 2));
 	float W = H*aspect;
 	vec3 u = W*(-sw + 2 * j + 1.f) / sw *vec3(1, 0, 0);  //注意是从像素中心射出，所以要加1.0作为补偿
 	vec3 v = H*(-sh + 2 * i + 1.f) / sh*vec3(0, 1, 0);
@@ -265,3 +295,4 @@ Ray Scene::RayThurPixel(Camera cam, int j, int i, float w)
 
 
 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  

@@ -23,8 +23,11 @@ public:
 	Texture* map_Ka;
 	Texture* map_Kd;
 	Texture* map_Ks;
+	Texture* map_Kn;
+	Texture* map_bump;
+
 	Matieral(MyColor diffuse, MyColor specular, MyColor emission, MyColor ambient, float shininess,
-		Texture* map_Ka=nullptr, Texture* map_Kd = nullptr, Texture* map_Ks = nullptr);
+		Texture* map_Ka=nullptr, Texture* map_Kd = nullptr, Texture* map_Ks = nullptr,Texture* map_Kn = nullptr,Texture* map_bump=nullptr);
 
 	MyColor GetMapColor(MapType type,vec3 uvw);
 	vec3 GetMapVec(MapType type, vec3 uvw);

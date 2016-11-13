@@ -24,10 +24,15 @@ struct MyTransform
 {
 	
 	mat4 trans;
-	void AffineTrans(vec3& v); //仿射变换
-	void NormalTrans(vec3& v); //对法线变换
+	void AffineTrans(vec3& v) const ;  //仿射变换
+	void NormalTrans(vec3& v) const ;  //对法线变换
 	MyTransform(mat4 trans);
 	MyTransform();
-	MyTransform MyInverse();
+	MyTransform MyInverse() const; 
+
+	MyTransform operator*(const MyTransform& trans) const
+	{
+		return MyTransform(trans.trans*this->trans);
+	}
 
 };

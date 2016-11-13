@@ -38,9 +38,17 @@ struct HitPoints
 class Geometry
 {
 public:
-	virtual HitPoints Intersect(Ray ray)
+	virtual HitPoints Intersect(const Ray* ray)
 	{
 		return HitPoints();
+	}
+	virtual MyTransform GetT2WMatrix(const vec3& uvw) const //获取改点从tangent space转到 world space
+	{
+		return MyTransform();
+	}
+	virtual MyTransform GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3& normal) const
+	{
+		return MyTransform();
 	}
 	Matieral* m;
 	MyTransform transform;
@@ -77,7 +85,8 @@ public:
 	vec3 pos;
 	float radius;
 
-	virtual HitPoints Intersect(Ray ray);
+	virtual HitPoints Intersect(const Ray* ray);
+	
 	Sphere(vec3 pos, float radius, Matieral* m, MyTransform transform);
 
 
@@ -91,8 +100,11 @@ class Triangle : public Geometry
 public:
 	Vertex* a, * b, *c;
 	vec3 faceNormal;
-	virtual HitPoints Intersect(Ray ray);
+	virtual HitPoints Intersect(const Ray* ray);
+	virtual MyTransform GetT2WMatrix(const vec3& uvw) const;
+	virtual MyTransform GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3& normal) const;
 	Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransform transform);
+	
 
 
 };

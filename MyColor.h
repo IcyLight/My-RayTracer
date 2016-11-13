@@ -14,6 +14,9 @@ struct MyColor
 	MyColor operator*(const float& d) const;
 	MyColor operator+(const MyColor& mc) const;
 	MyColor operator*(const MyColor& mc) const;
+
+	operator glm::vec3(); //由法线图的颜色转换为法线
+
 	RGBQUAD GetRBGQUAD();
 
 };

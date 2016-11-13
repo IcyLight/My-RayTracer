@@ -1,16 +1,14 @@
 #pragma once
 
-#include "lib\glm\glm\glm.hpp"
-
-
 #include <vector>
 #include <stack>
 #include <memory>
 #include <algorithm>
-
 #include <thread>
 
+#include "lib\glm\glm\glm.hpp"
 #include "lib\FreeImage.h"
+
 #include "Transform.h"
 #include "MyColor.h"
 #include "Material.h"
@@ -21,21 +19,10 @@ using namespace glm;
 using namespace std;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+enum RenderMode
+{
+	VertexNormalMode, NormalMapMode
+};
 
 
 
@@ -55,12 +42,13 @@ public:
 	vector<vec3> vUVArray;
 
 
-	MyColor Raycast(Ray ray);
-	MyColor GetColor(HitPoint hit,  Ray ray, const Geometry* geometry);
-	bool visibile(Ray ray,const Light* light);
-	Ray RayThurPixel(Camera cam, int j, int i, float w);
-	Scene(float MaxRayDepth, int RecursiveMaxDepth);
+	MyColor Raycast(const Ray* ray) const;
+	MyColor GetColor(const HitPoint* hit,const Ray* ray, const Geometry* geometry) const;
+	bool visibile(const Ray* ray,const Light* light) const;
+	Ray RayThurPixel(const Camera* cam, int j, int i, float w) const;
+	Scene(float MaxRayDepth, int RecursiveMaxDepth,RenderMode renderMode=RenderMode::VertexNormalMode);
 
+	RenderMode renderMode;
 	float MaxRayDepth; 
 	int RecursiveMaxDepth = 1;
 };

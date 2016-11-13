@@ -38,6 +38,14 @@
 		return MyColor(R*mc.R, G*mc.G, B*mc.B, A*mc.A);
 	}
 
+	MyColor::operator glm::vec3 ()
+	{
+		float x = this->R - 0.5;
+		float y = this->G - 0.5;
+		float z = glm::max(this->B - 0.5,0.0);
+		return glm::normalize(glm::vec3(x, y, z));
+	}
+
 	RGBQUAD MyColor::GetRBGQUAD()
 	{
 		

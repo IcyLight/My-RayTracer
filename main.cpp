@@ -21,12 +21,7 @@ using namespace glm;
 
 int main()
 {
-	mat4 tmd = mat4(1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4);
-	mat3 j = mat3(tmd);
-	vec3 eye = vec3(0, 20, 20);
-	vec3 center = vec3(0, 0, -1);
-	vec3 up = vec3(0, 1, 0);
-	Camera cam = Camera(60, 60, 1, eye, center, up,2048,1024);
+
 
 
 	
@@ -63,11 +58,20 @@ int main()
 	//FIBITMAP* m = Display(HWCamera);
 	//FreeImage_Save(FIF_PNG, m, &curfilename[0]);
 
-	string address = string("chr_old.obj");
-	Scene* myScene = new Scene(100, 1);
+
+
+	vec3 eye = vec3(0, 30, 50);
+	vec3 center = vec3(0, 30, 0);
+	vec3 up = vec3(0, 1, 0);
+	Camera cam = Camera(60, 60, 1, eye, center, up, 1600, 900);
+
+	string address = string("test.obj");
+	Scene* myScene = new Scene(100, 1,RenderMode::NormalMapMode);
 	readfile(address.data(), myScene,LoadMode::ObjLoad);
+
 	Light* l = new Light(normalize(cam.lookAt - cam.lookFrom), MyColor(1, 1, 1, 1), LightType::Dirctional);
 	myScene->LightArray.push_back(l);
+
 	FIBITMAP* m = Display(cam,myScene);
 	FreeImage_Save(FIF_PNG, m, "Test.png");
 

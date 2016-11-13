@@ -3,7 +3,7 @@
 
 
 Matieral::Matieral(MyColor diffuse, MyColor specular, MyColor emission, MyColor ambient, float shininess,
-	Texture* map_Ka , Texture* map_Kd , Texture* map_Ks )
+	Texture* map_Ka , Texture* map_Kd , Texture* map_Ks , Texture* map_Kn , Texture* map_bump )
 {
 	this->diffuse = diffuse;
 	this->specular = specular;
@@ -13,6 +13,8 @@ Matieral::Matieral(MyColor diffuse, MyColor specular, MyColor emission, MyColor 
 	this->map_Ka = map_Ka;
 	this->map_Kd = map_Kd;
 	this->map_Ks = map_Ks;
+	this->map_Kn = map_Kn;
+	this->map_bump = map_bump;
 
 }
 
@@ -53,9 +55,17 @@ MyColor Matieral::GetMapColor(MapType type, vec3 uvw)
 		}
 		break;
 	case normalMap:
-		return MyColor();
+		if (this->map_bump != nullptr)
+		{
+			return map_bump->GetColor(uvw);
+		}
+		else
+		{
+			return specular;
+		}
 		break;
 	default:
 		break;
 	}
+	return MyColor();
 }

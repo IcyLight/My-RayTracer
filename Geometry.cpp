@@ -33,6 +33,7 @@ bool HitPoints::push(HitPoint hp)
 		hps[PointCount] = hp;
 		PointCount++;
 	}
+	return true;
 }
 
 
@@ -45,15 +46,16 @@ Sphere::Sphere(vec3 pos, float radius, Matieral* m, MyTransform transform)
 
 }
 
-HitPoints Sphere::Intersect(Ray ray)
+HitPoints Sphere::Intersect(const Ray* ray)
 {
 	HitPoints spHit = HitPoints(); //返回值，用以表示穿过圆的两个点
 								   //令向量为 R = origin + k*dirction
+	Ray r = Ray(*ray);
 
-	ray.xfrmRay(this->transform.trans);  //求射线在物体坐标下的位置方向
+	r.xfrmRay(this->transform.trans);  //求射线在物体坐标下的位置方向
 
-	vec3& d = ray.dirction;
-	vec3& o = ray.origin;
+	vec3& d = r.dirction;
+	vec3& o = r.origin;
 	vec3& c = pos;
 	float delta = 4 * dot(d, o - c)*dot(d, o - c) - 4 * dot(d, d) * (dot(o - c, o - c) - radius*radius);
 	if (delta > FLOATOFFSET)
@@ -82,7 +84,7 @@ HitPoints Sphere::Intersect(Ray ray)
 			//求出k1,k2后就要吧射线变换回来，而且把点和向量都转换到世界坐标
 			MyTransform mt = this->transform;
 			MyTransform imt = this->transform.MyInverse();
-			ray.xfrmRay(imt);
+			r.xfrmRay(imt);
 
 			//转换到视角空间
 			mt.AffineTrans(front_hitpos);
@@ -94,10 +96,10 @@ HitPoints Sphere::Intersect(Ray ray)
 
 
 			
-			double front_depth = glm::min(vecLength(k1*d), ray.maxDepth) / ray.maxDepth;
+			double front_depth = glm::min(vecLength(k1*d), r.maxDepth) / r.maxDepth;
 
 
-			double back_depth = glm::min(vecLength(k2*d), ray.maxDepth) / ray.maxDepth;
+			double back_depth = glm::min(vecLength(k2*d), r.maxDepth) / r.maxDepth;
 
 			if (k1*k2<0)
 			{
@@ -144,20 +146,75 @@ Triangle::Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransfo
 	this->transform = transform;
 }
 
-HitPoints Triangle::Intersect(Ray ray)
+
+
+
+MyTransform Triangle::GetT2WMatrix(const vec3& uvw) const
+{
+	//将法线贴图从 tangent space转到视角空间
+	//http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
+
+	/*
+	mat3 tt = mat3(a->uvw, b->uvw, c->uvw);
+	mat3 itt = inverse(mat3(a->uvw, b->uvw, c->uvw));
+	vec3 barycentric_coord = inverse(mat3(a->uvw, b->uvw, c->uvw))*uvw;
+	float& u = barycentric_coord.y;
+	float& v = barycentric_coord.z;
+	*/
+
+	mat2 ttt = inverse(mat2(a->uvw.x, a->uvw.y, b->uvw.x, b->uvw.y));
+	vec2 sv = ttt*vec2(uvw.x, uvw.y);
+	float u = sv.y;
+	float v = -sv.x + 1 - u;
+
+	vec3 pos = (1-u-v)*a->pos + u*b->pos + v*c->pos;
+	vec3 normal = (1 - u - v)*a->normal + u*b->normal + v*c->normal;
+	return GetT2WMatrix(uvw, pos, normal);
+	
+	
+	
+	
+	
+}
+
+MyTransform Triangle::GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3& normal) const
+{
+	//将法线贴图从 tangent space转到视角空间
+	//http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
+	
+	vec3 deltaPos1 = a->pos - pos;
+	vec3 deltaPos2 = b->pos - pos;
+	vec3 deltaUV1 = a->uvw - uvw;
+	vec3 deltaUV2 = b->uvw - uvw;
+	
+	mat2 TBmat = inverse(mat2(deltaUV1.x, deltaUV1.y, deltaUV2.x, deltaUV2.y));
+
+	
+
+
+	vec3 T = TBmat[0][0] * deltaPos1 + TBmat[0][1] * deltaPos2;
+	vec3 B = TBmat[1][0] * deltaPos1 + TBmat[1][1] * deltaPos2;
+
+	const vec3& N = normal;
+	mat3 T2WMatrix = mat3(T, B, N);
+	return MyTransform((mat4)T2WMatrix);
+}
+
+
+HitPoints Triangle::Intersect(const Ray* ray)
 {
 
-
+	Ray r = Ray(*ray);
 
 
 	HitPoints triHit = HitPoints();
-	ray.xfrmRay(transform.trans);
-	vec3& d = ray.dirction;
-	vec3& o = ray.origin;
+	r.xfrmRay(transform.trans);
+	vec3& d = r.dirction;
+	vec3& o = r.origin;
 	vec3& va = this->a->pos;
 	vec3& vb = this->b->pos;
 	vec3& vc = this->c->pos;
-	vec3 IntFaceNormal = dot(faceNormal, ray.dirction) < 0 ? faceNormal : -faceNormal;  //两面的法线选择和入射光同一面的
+	vec3 IntFaceNormal = dot(faceNormal, r.dirction) < 0 ? faceNormal : -faceNormal;  //两面的法线选择和入射光同一面的
 	float denominator = dot(d, IntFaceNormal);
 	if (abs(denominator) < FLOATOFFSET) //平行的时候
 	{
@@ -225,7 +282,7 @@ HitPoints Triangle::Intersect(Ray ray)
 		//(d1 >= 0 && d2 >= 0 && d3 >= 0) || (d1 <= 0 && d2 <= 0 && d3 <= 0)
 		*/
 		
-
+		
 
 		if(u>-FLOATOFFSET && v>-FLOATOFFSET && u + v<1+FLOATOFFSET)
 		{
@@ -254,7 +311,7 @@ HitPoints Triangle::Intersect(Ray ray)
 			//求出k后就要吧射线变换回来            而且把点和向量都转换到世界坐标
 			MyTransform mt = this->transform;
 			MyTransform imt = this->transform.MyInverse();
-			ray.xfrmRay(imt);
+			r.xfrmRay(imt);
 			//float lenD = vecLength(d);
 
 			//转换到视角空间
@@ -265,7 +322,7 @@ HitPoints Triangle::Intersect(Ray ray)
 
 
 
-			double depth = glm::min(vecLength(t*d), ray.maxDepth) / ray.maxDepth;
+			double depth = glm::min(vecLength(t*d), r.maxDepth) / r.maxDepth;
 			HitPoint hp = HitPoint(hitpos, normal,uvw, depth, GeometryType::tri);
 			triHit.push(hp);
 

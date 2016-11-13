@@ -258,7 +258,10 @@ void Objload(const char* filename, Scene* scene)
 						string st;
 						s >> st;
 						sscanf(&st[0], "%d/%d/%d", &pos, &uv, &nor);
-						vet = new Vertex( scene->vPosArray[pos-1], scene->vUVArray[uv-1], scene->vNorArray[nor-1]);
+						vec3 vpos = pos>0?scene->vPosArray[pos - 1]:vec3(0,0,0);
+						vec3 puv = uv>0?scene->vUVArray[uv - 1]:vec3(0,0,0);
+						vec3 pnor = nor>0?scene->vNorArray[nor - 1]:vec3(0,0,0);
+						vet = new Vertex( vpos, puv, pnor);
 						scene->vertexArray.push_back(vet);
 						int u = 0;
 					}
@@ -453,6 +456,15 @@ void mtlLoad(const char* filename, Scene* scene)
 				else if (cmd == "map_Ns")
 				{
 					
+				}
+				else if (cmd == "map_bump")
+				{
+					string address;
+					s >> address;
+					FIBITMAP* tex = FreeImage_Load(FIF_TARGA, address.data());
+					int height = FreeImage_GetHeight(tex);
+					int width = FreeImage_GetWidth(tex);
+					loadingMat->map_bump = new Texture(tex, width, height);
 				}
 
 			}

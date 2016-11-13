@@ -96,16 +96,16 @@ double dvecLength(vec3 v)
 }
 
 
-void MyTransform::AffineTrans(vec3& v)
+void MyTransform::AffineTrans(vec3& v) const
 {
-	mat4& Mytrans = this->trans;
+	const mat4& Mytrans = this->trans;
 	vec3 dv = vec3(Mytrans[3][0], Mytrans[3][1], Mytrans[3][2]);
 	mat3 mt = mat3(Mytrans[0][0], Mytrans[0][1], Mytrans[0][2], Mytrans[1][0], Mytrans[1][1], Mytrans[1][2], Mytrans[2][0], Mytrans[2][1], Mytrans[2][2]);
 	v = mt*v;
 	v += dv;
 }
 
-void MyTransform::NormalTrans(vec3& v)
+void MyTransform::NormalTrans(vec3& v) const
 {
 	mat3 lm = mat3(transpose(inverse(this->trans)));  //ÏòÁ¿±ä»»¾ØÕóÊÇÔ­¾ØÕóµÄÄæ¾ØÕóµÄ×ªÖÃ
 	v = lm*v;
@@ -119,7 +119,7 @@ MyTransform::MyTransform()
 {
 	trans = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 }
-MyTransform MyTransform::MyInverse()
+MyTransform MyTransform::MyInverse() const
 {
 	return MyTransform(inverse(this->trans));
 }
