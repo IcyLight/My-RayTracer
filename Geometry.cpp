@@ -2,6 +2,7 @@
 
 
 
+
 HitPoint::HitPoint(vec3 pos, vec3 nor, vec3 uvw, double depth, GeometryType type)
 {
 	position = pos;
@@ -151,6 +152,7 @@ Triangle::Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransfo
 
 MyTransform Triangle::GetT2WMatrix(const vec3& uvw) const
 {
+	
 	//将法线贴图从 tangent space转到视角空间
 	//http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
 
@@ -162,6 +164,8 @@ MyTransform Triangle::GetT2WMatrix(const vec3& uvw) const
 	float& v = barycentric_coord.z;
 	*/
 
+	/*
+	*暂时有bug
 	mat2 ttt = inverse(mat2(a->uvw.x, a->uvw.y, b->uvw.x, b->uvw.y));
 	vec2 sv = ttt*vec2(uvw.x, uvw.y);
 	float u = sv.y;
@@ -171,9 +175,9 @@ MyTransform Triangle::GetT2WMatrix(const vec3& uvw) const
 	vec3 normal = (1 - u - v)*a->normal + u*b->normal + v*c->normal;
 	return GetT2WMatrix(uvw, pos, normal);
 	
+	*/
 	
-	
-	
+	return MyTransform();
 	
 }
 
@@ -201,6 +205,43 @@ MyTransform Triangle::GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3&
 }
 
 
+
+bool Triangle::PlaneIntersect(const Ray* ray,vec3* HitPos)  //HitPos世界（视角）坐标下的
+{
+	Ray r = Ray(*ray);
+
+	r.xfrmRay(transform.trans);
+
+	MyTransform imt = this->transform.MyInverse();
+	
+
+	vec3& d = r.dirction;
+	vec3& o = r.origin;
+	vec3& va = this->a->pos;
+
+	if (glm::abs(dot(d, faceNormal)) < FLOATOFFSET)
+	{
+		*HitPos = vec3(0, 0, 0);
+		return false;
+	}
+
+	float t = (  (dot(va, faceNormal) -dot(o,faceNormal)) / dot(d, faceNormal) ) ;
+
+	if (t > -FLOATOFFSET && t < r.maxDepth)
+	{
+		r.xfrmRay(imt);
+		*HitPos= o + t *d;
+		return true;
+	}
+	else
+	{
+		*HitPos = vec3(0, 0, 0);
+		return false;
+	}
+	
+
+}
+
 HitPoints Triangle::Intersect(const Ray* ray)
 {
 
@@ -222,6 +263,7 @@ HitPoints Triangle::Intersect(const Ray* ray)
 	}
 	else
 	{
+		
 		//利用重心坐标判断点是否在三角形中
 
 		/*
@@ -294,12 +336,7 @@ HitPoints Triangle::Intersect(const Ray* ray)
 				normal = (1 - u - v)*a->normal + u*b->normal + v*c->normal;
 				uvw = (1 - u - v)*a->uvw + u*b->uvw + v*c->uvw;
 
-				/*Debug
-				printf("a %f %f %f\n", a->uvw.x, a->uvw.y, a->uvw.z);
-				printf("b %f %f %f\n", b->uvw.x, b->uvw.y, b->uvw.z);
-				printf("c %f %f %f\n", c->uvw.x, c->uvw.y, c->uvw.z);
-				printf("uvw %f %f %f\n\n", uvw.x, uvw.y, uvw.z);
-				*/
+
 			}
 			else
 			{
@@ -334,4 +371,143 @@ HitPoints Triangle::Intersect(const Ray* ray)
 		}
 	}
 
+}
+
+
+BSP_Case Triangle::GetBSPRelation(const Triangle* object, const Triangle* hyperplane)
+{
+	vec3 hyperplaneNormal = hyperplane->faceNormal;
+	vec3 vA = object->a->pos - hyperplane->a->pos;
+	vec3 vB = object->b->pos - hyperplane->a->pos;
+	vec3 vC = object->c->pos - hyperplane->a->pos;
+	if (dot(hyperplaneNormal, vA) > FLOATOFFSET && dot(hyperplaneNormal, vB) > FLOATOFFSET && dot(hyperplaneNormal, vC) > FLOATOFFSET)
+	{
+		return BSP_Case::front;
+	}
+	else if (dot(hyperplaneNormal, vA) < -FLOATOFFSET && dot(hyperplaneNormal, vB) < -FLOATOFFSET && dot(hyperplaneNormal, vC) < -FLOATOFFSET)
+	{
+		return BSP_Case::behind;
+	}
+	else
+	{
+		return BSP_Case::span;
+	}
+	
+}
+
+
+
+
+
+void GetBSPClip(const Ray* ray, const BSPNode<Triangle, Triangle::GetBSPRelation>* node, list<Triangle*>* tlist)
+{
+	Ray transRay = Ray(*ray); //构造物体坐标下的射线
+	transRay.xfrmRay(node->Object->transform.trans);
+
+	vec3 RayStart = transRay.origin;
+	vec3 RayEnd = transRay.origin + transRay.maxDepth* transRay.dirction;
+
+	vec3& faceNormal = node->Object->faceNormal;
+	vec3 vS = RayStart - node->Object->a->pos;
+	vec3 vE = RayEnd - node->Object->a->pos;
+
+	vec3 interPos; //视角（世界）坐标下平面与射线交会点
+	bool isInter = node->Object->PlaneIntersect(ray, &interPos);
+	float t1 = dot(vS, faceNormal);
+	float t2 = dot(vE, faceNormal);
+
+
+	//DEBUG
+	/*
+	if (isInter && (t1*t2 > 0))
+	{
+		vec3 gg = vE;
+		vec3 ff = faceNormal;
+		DEBUG_PRINT_3VECOTOR(gg)
+			DEBUG_PRINT_3VECOTOR(ff)
+			printf("%f",t2);
+		printf("%f", t1);
+		printf("AA");
+		
+	}
+	if (!isInter && (t1*t2 < 0))
+	{
+		printf("AA");
+	}
+	*/
+	
+
+
+	//尽量保证以前中后的顺序加入链表，后面可能添加新的功能，例如快速消隐
+	if (isInter)
+	{
+		
+		const Ray* frontRay = ray;
+		const Ray* behindRay = ray;
+		Ray I2ERay = Ray(interPos, ray->dirction, ray->RecurCount, ray->maxDepth - vecLength(ray->origin - interPos)); //interPos to End
+		Ray O2IRay = Ray(ray->origin, ray->dirction, ray->RecurCount, vecLength(interPos - ray->origin)); //origin to interPos
+		if (t2 > FLOATOFFSET)
+		{
+			frontRay = &I2ERay;
+			behindRay = &O2IRay;
+		}
+		else if(t2<-FLOATOFFSET)
+		{
+			frontRay = &O2IRay;
+			behindRay = &I2ERay;
+		}
+
+
+		if (node->frontNode != nullptr)
+		{
+			
+			GetBSPClip(frontRay, node->frontNode, tlist);
+		}
+		else
+		{
+			(*tlist).insert((*tlist).end(), node->frontObjects.begin(), node->frontObjects.end());
+		}
+
+		(*tlist).insert((*tlist).end(), node->spanObjects.begin(), node->spanObjects.end());
+
+		if (node->behindNode != nullptr)
+		{
+			
+			GetBSPClip(behindRay, node->behindNode, tlist);
+		}
+		else
+		{
+			(*tlist).insert((*tlist).end(), node->behindObjects.begin(), node->behindObjects.end());
+		}
+	}
+	else
+	{
+		if (t2>FLOATOFFSET)
+		{
+			if (node->frontNode != nullptr)
+			{
+				GetBSPClip(ray, node->frontNode, tlist);
+			}
+			else
+			{
+				(*tlist).insert((*tlist).end(), node->frontObjects.begin(), node->frontObjects.end());
+			}
+		}
+		(*tlist).insert((*tlist).end(), node->spanObjects.begin(), node->spanObjects.end());
+		if(t2 < -FLOATOFFSET)
+		{
+			if (node->behindNode != nullptr)
+			{
+				
+				GetBSPClip(ray, node->behindNode, tlist);
+			}
+			else
+			{
+				(*tlist).insert((*tlist).end(), node->behindObjects.begin(), node->behindObjects.end());
+			}
+		}
+	}
+
+
+	return;
 }

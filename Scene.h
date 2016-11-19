@@ -32,6 +32,12 @@ public:
 	//vector<Sphere> sphArray;
 	//vector<Triangle> triArray;
 	vector<Geometry*> GeometryArray;
+	vector<Triangle*> TriangleArray;
+	vector<Sphere*> SphereArray;
+
+	BSPTree<Triangle, Triangle::GetBSPRelation> bsptree;
+	
+
 	vector<Light*> LightArray;
 	vector<Vertex*> vertexArray;
 	vector<Matieral*> MatieralArray;

@@ -31,23 +31,57 @@ MyColor Scene::Raycast(const Ray* ray) const
 	{
 		return MyColor{ 0,0,0,0 };
 	}
-	
+
 
 	vector<MyHit> SceneHits;
-	for (vector<Geometry*>::const_iterator i = GeometryArray.cbegin(); i != GeometryArray.end(); i++)  
+	if (bsptree.root != nullptr)
 	{
-		HitPoints hps = (*i)->Intersect(ray);
-		for (int x = 0; x < hps.PointCount; x++)
+		list<Triangle*> clipTriangleList;
+		GetBSPClip(ray, bsptree.root,&clipTriangleList);
+		//printf("此射线检测三角形个数%d\n", clipTriangleList.size());
+		for (list<Triangle*>::const_iterator i = clipTriangleList.cbegin(); i != clipTriangleList.end(); i++)
 		{
-			HitPoint hp = hps.hps[x];
-			MyHit hit = MyHit(hp, *i);
-			if (true)
+			HitPoints hps = (*i)->Intersect(ray);
+			for (int x = 0; x < hps.PointCount; x++)
 			{
-				SceneHits.push_back(hit);
+				HitPoint hp = hps.hps[x];
+				MyHit hit = MyHit(hp, *i);
+				if (true)
+				{
+					SceneHits.push_back(hit);
+				}
 			}
-
 		}
 
+		for (vector<Sphere*>::const_iterator i = SphereArray.cbegin(); i != SphereArray.end(); i++)
+		{
+			HitPoints hps = (*i)->Intersect(ray);
+			for (int x = 0; x < hps.PointCount; x++)
+			{
+				HitPoint hp = hps.hps[x];
+				MyHit hit = MyHit(hp, *i);
+				if (true)
+				{
+					SceneHits.push_back(hit);
+				}
+			}
+		}
+	}
+	else
+	{
+		for (vector<Geometry*>::const_iterator i = GeometryArray.cbegin(); i != GeometryArray.end(); i++)
+		{
+			HitPoints hps = (*i)->Intersect(ray);
+			for (int x = 0; x < hps.PointCount; x++)
+			{
+				HitPoint hp = hps.hps[x];
+				MyHit hit = MyHit(hp, *i);
+				if (true)
+				{
+					SceneHits.push_back(hit);
+				}
+			}
+		}
 	}
 	int i = SceneHits.size();
 	sort(SceneHits.begin(), SceneHits.end());
@@ -62,6 +96,7 @@ MyColor Scene::Raycast(const Ray* ray) const
 
 MyColor Scene::GetColor(const HitPoint* hit, const Ray* ray, const Geometry* geometry) const  //在视角空间中获取颜色
 {
+	
 	MyColor ambient = geometry->m->GetMapColor(MapType::ambientMap, hit->uvw);
 	MyColor diffuse = geometry->m->GetMapColor(MapType::diffuseMap, hit->uvw);
 	MyColor specular = geometry->m->GetMapColor(MapType::specularMap, hit->uvw);
@@ -78,25 +113,28 @@ MyColor Scene::GetColor(const HitPoint* hit, const Ray* ray, const Geometry* geo
 	else if (renderMode == RenderMode::NormalMapMode)
 	{
 
-
-
-		//MyTransform T2WTrans = geometry->GetT2WMatrix(hit->uvw);
 		
-		MyTransform invr = geometry->transform.MyInverse();
+		if (normal.z > 0.5f)  //贴图返回的是有效的法线
+		{
+			MyTransform invr = geometry->transform.MyInverse();
 
-		normal = hit->normal;
-		vec3 Mpos = hit->position;
+			vec3 Hitnormal = hit->normal;
+			vec3 Mpos = hit->position;
 
-		invr.AffineTrans(Mpos);
-		invr.NormalTrans(normal);
-		
-		MyTransform T2WTrans = geometry->GetT2WMatrix(hit->uvw,Mpos, normal);
+			invr.AffineTrans(Mpos);
+			invr.NormalTrans(Hitnormal);
 
-		MyTransform T2VTransfrom = geometry->transform*T2WTrans;
+			MyTransform T2WTrans = geometry->GetT2WMatrix(hit->uvw, Mpos, normal);
 
-		normal = (vec3)geometry->m->GetMapColor(MapType::normalMap, hit->uvw);
-		T2VTransfrom.NormalTrans(normal);
+			MyTransform T2VTransfrom = geometry->transform*T2WTrans;
 
+			normal = (vec3)geometry->m->GetMapColor(MapType::normalMap, hit->uvw);
+			T2VTransfrom.NormalTrans(normal);
+		}
+		else
+		{
+			normal = hit->normal;
+		}
 	}
 	
 
@@ -159,7 +197,7 @@ MyColor Scene::GetColor(const HitPoint* hit, const Ray* ray, const Geometry* geo
 	{
 		vec3 re = reflect(ray->dirction, normal);
 		PointColor = PointColor + specular*Raycast(&Ray(hitpos + re*0.001f, re, ray->RecurCount + 1, MaxRayDepth));
-		//注意reflect的参数I是入射方向的反向
+		//注意reflect的参数I是入射方向的反向v
 	}
 	
 	return PointColor;
@@ -169,9 +207,11 @@ void RenderRow(Scene* scene, Camera cam, FIBITMAP* outImage, int rowIndex)
 {
 	for (int j = 0; j < cam.ScreenWidth; j++)
 	{
-
 		Ray r = scene->RayThurPixel(&cam, j, rowIndex, 1);
 		MyColor color = scene->Raycast(&r);
+
+		//DEBUG_IN_PIXEL(j, rowIndex, 28, 28,DEBUG_PRINT_COLOR(color) )
+
 		FreeImage_SetPixelColor(outImage, j, rowIndex, &(color.GetRBGQUAD()));
 	}
 }
@@ -231,23 +271,58 @@ bool Scene::visibile(const Ray* ray,const Light* light) const
 	float OLdis = vecLength(light->pos - ray->origin);
 
 	vector<MyHit> SceneHits;
-	for (vector<Geometry*>::const_iterator i = GeometryArray.cbegin(); i != GeometryArray.cend(); i++)
+
+	if (bsptree.root != nullptr)
 	{
-		HitPoints hps = (*i)->Intersect(ray);
-		for (int x = 0; x < hps.PointCount; x++)
+		list<Triangle*> clipTriangleList;
+		GetBSPClip(ray, bsptree.root, &clipTriangleList);
+
+		for (list<Triangle*>::const_iterator i = clipTriangleList.cbegin(); i != clipTriangleList.end(); i++)
 		{
-			HitPoint hp = hps.hps[x];
-			MyHit hit = MyHit(hp, *i);
-			if (vecLength(hp.position - ray->origin) < OLdis)
+			HitPoints hps = (*i)->Intersect(ray);
+			for (int x = 0; x < hps.PointCount; x++)
 			{
-
-				SceneHits.push_back(hit);
+				HitPoint hp = hps.hps[x];
+				MyHit hit = MyHit(hp, *i);
+				if (true)
+				{
+					SceneHits.push_back(hit);
+				}
 			}
+		}
 
+		for (vector<Sphere*>::const_iterator i = SphereArray.cbegin(); i != SphereArray.end(); i++)
+		{
+			HitPoints hps = (*i)->Intersect(ray);
+			for (int x = 0; x < hps.PointCount; x++)
+			{
+				HitPoint hp = hps.hps[x];
+				MyHit hit = MyHit(hp, *i);
+				if (true)
+				{
+					SceneHits.push_back(hit);
+				}
+			}
 		}
 	}
+	else
+	{
+		for (vector<Geometry*>::const_iterator i = GeometryArray.cbegin(); i != GeometryArray.cend(); i++)
+		{
+			HitPoints hps = (*i)->Intersect(ray);
+			for (int x = 0; x < hps.PointCount; x++)
+			{
+				HitPoint hp = hps.hps[x];
+				MyHit hit = MyHit(hp, *i);
+				if (vecLength(hp.position - ray->origin) < OLdis)
+				{
 
+					SceneHits.push_back(hit);
+				}
 
+			}
+		}
+	}
 	if (SceneHits.empty())
 	{
 		return true;
@@ -273,26 +348,4 @@ Ray Scene::RayThurPixel(const Camera* cam, int j, int i, float w) const
 	vec3 v = H*(-sh + 2 * i + 1.f) / sh*vec3(0, 1, 0);
 	Ray r = Ray(vec3(0, 0, 0), vec3(0, 0, -1)*w + u + v, 0, MaxRayDepth);
 	return r;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          

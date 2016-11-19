@@ -273,6 +273,7 @@ void Objload(const char* filename, Scene* scene)
 						v1,v2,v3,
 						curMatieral, TransformStack.top());
 					scene->GeometryArray.push_back(t);
+					scene->TriangleArray.push_back(t);
 				}
 				else if (cmd == "v")
 				{
@@ -439,7 +440,7 @@ void mtlLoad(const char* filename, Scene* scene)
 					string address;
 					s >> address;
 					
-					FIBITMAP* tex = FreeImage_Load(FIF_PNG, address.data());
+					FIBITMAP* tex = FreeImage_Load(FIF_TARGA, address.data());
 					int height = FreeImage_GetHeight(tex);
 					int width = FreeImage_GetWidth(tex);
 					loadingMat->map_Kd = new Texture(tex, width, height);
@@ -476,6 +477,7 @@ void mtlLoad(const char* filename, Scene* scene)
 
 void readfile(const char* filename, Scene* scene,LoadMode loadMode)
 {
+	printf("读取模型与材质中。。。\n");
 	if (loadMode == LoadMode::HwLoad)
 	{
 		HWload(filename,scene);
@@ -484,6 +486,10 @@ void readfile(const char* filename, Scene* scene,LoadMode loadMode)
 	{
 		Objload(filename, scene);
 	}
+	printf("读取模型与材质读取完成\n");
+	printf("构建BSP树中。。。\n");
+	scene->bsptree = BSPTree<Triangle, Triangle::GetBSPRelation>(scene->TriangleArray,4,0.95);
+	printf("BSP树构建完成\n");
 
 }
 

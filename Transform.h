@@ -1,5 +1,6 @@
 #pragma once
 #include "lib\glm\glm\glm.hpp"
+#include "Debug.h"
 #define FLOATOFFSET 0.001
 #define RECURSIVE 1
 #define NORMALINTERPOLATION 1

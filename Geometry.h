@@ -1,8 +1,12 @@
 #pragma once
+#include <list>
+#include <xtree>
 #include "Transform.h"
 #include "Material.h"
 #include "Ray.h"
 #include "Vertex.h"
+
+#include "BSP.h"
 enum GeometryType
 {
 	sph, tri, infinite
@@ -10,6 +14,7 @@ enum GeometryType
 
 struct HitPoint
 {
+	
 	vec3 position;
 	vec3 normal;
 	vec3 uvw;
@@ -101,10 +106,13 @@ public:
 	Vertex* a, * b, *c;
 	vec3 faceNormal;
 	virtual HitPoints Intersect(const Ray* ray);
+	 bool PlaneIntersect(const Ray* line,  vec3* HitPoint);  //求与三角形所在平面的交点
+
 	virtual MyTransform GetT2WMatrix(const vec3& uvw) const;
 	virtual MyTransform GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3& normal) const;
 	Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransform transform);
-	
 
-
+	static BSP_Case GetBSPRelation(const Triangle* object, const Triangle* hyperplane);
 };
+
+void GetBSPClip(const Ray* ray, const BSPNode<Triangle, Triangle::GetBSPRelation>* node, list<Triangle*>* tlist);
