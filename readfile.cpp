@@ -488,7 +488,8 @@ void readfile(const char* filename, Scene* scene,LoadMode loadMode)
 	}
 	printf("读取模型与材质读取完成\n");
 	printf("构建BSP树中。。。\n");
-	scene->bsptree = BSPTree<Triangle, Triangle::GetBSPRelation>(scene->TriangleArray,4,0.95);
+	
+	scene->bsptree = TriangleBSPTree(scene->TriangleArray,4,0.95,false);
 	printf("BSP树构建完成\n");
 
 }

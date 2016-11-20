@@ -11,28 +11,36 @@ enum BSP_Case
 	front,behind,span,coincident
 };
 
-template<typename T , BSP_Case(*GetRelationFunc)(const T* object, const T* hyperplane)>
+//SplitFunc返回分割出的形状数量,若错误则返回0
+template<typename HyperPlane, typename Vertex, 
+	BSP_Case(*GetRelationFunc)(const HyperPlane* object, const HyperPlane* HyperPlane), 
+	void(*HyperPlane::SplitFunc)(const HyperPlane* plane, const HyperPlane* Object, vector<HyperPlane*>* Out_Objects, vector<Vertex*>* Out_Vertexs)>
 class BSPNode
 {
 public:
-	vector<T*> frontObjects;
-	vector<T*> behindObjects;
-	vector<T*> spanObjects;
-	T* Object;
+	vector<HyperPlane*> frontObjects;
+	vector<HyperPlane*> behindObjects;
+	vector<HyperPlane*> spanObjects;
+	
+	//切割出来的三角形是由BSP树生成的，单独放在一个容器里，由BSP树负责释放内存
+	vector<HyperPlane*> splitedFrontObjects;
+	vector<HyperPlane*> splitedBehindObjects;
+
+	HyperPlane* Object;
 	BSPNode* frontNode;
 	BSPNode* behindNode;
 
 	BSPNode(){}
 
-	BSPNode(vector<T*> leafObjects,T* hyperplane)
+	BSPNode(vector<HyperPlane*> leafObjects,HyperPlane* plane,bool isSplit = false)
 	{
-		this->Object = hyperplane;
+		this->Object = plane;
 		this->frontNode = nullptr;
 		this->behindNode = nullptr;
 		for (int i=0;i<leafObjects.size();++i)
 		{
 
-			BSP_Case relation = GetRelationFunc(leafObjects[i] , hyperplane);
+			BSP_Case relation = GetRelationFunc(leafObjects[i] , plane);
 			switch (relation)
 			{
 			case BSP_Case::front:
@@ -43,7 +51,33 @@ public:
 				break;
 			case BSP_Case::coincident:
 			case BSP_Case::span:
-				spanObjects.push_back(leafObjects[i]);
+				if (isSplit)
+				{
+					vector<plane*> HyperPlaneArray;
+					vector<Vertex*> VertexArray;
+
+					leafObjects[i]::SplitFunc(HyperPlane, &p_Objects);
+					for (int i = 0; i < ObjectCount; i++)
+					{
+						BSP_Case i_relation = GetRelationFunc(&p_Objects[i], plane);
+						switch (i_relation)
+						{
+						case BSP_Case::front:
+							splitedFrontObjects.push_back(&p_Objects[i]);
+							break;
+						case BSP_Case::behind:
+							splitedBehindObjects.push_back(&p_Objects[i]);
+							break;
+						}
+
+					}
+					
+					
+				}
+				else
+				{
+					spanObjects.push_back(leafObjects[i]);
+				}
 				break;
 			default:
 				break;
@@ -51,7 +85,7 @@ public:
 		}
 	}
 
-	static T* GetBlanceObject(const vector<T*>* Objects, float blanceRatio)
+	static HyperPlane* GetBlanceObject(const vector<HyperPlane*>* Objects, float blanceRatio)
 	{
 		if ((*Objects).empty())
 		{
@@ -88,42 +122,46 @@ public:
 };
 
 
-template<typename T,BSP_Case (*GetRelationFunc)(const T* object,const T* hyperplane) > 
+template<typename HyperPlane,typename Vertex,
+	BSP_Case (*GetRelationFunc)(const HyperPlane* object,const HyperPlane* HyperPlane), 
+	void(*HyperPlane::SplitFunc)(const HyperPlane* plane, const HyperPlane* Object, vector<HyperPlane*>* Out_Objects, vector<Vertex*>* Out_Vertexs)>
 class BSPTree
 {
 public:
-	BSPNode<T, GetRelationFunc>* root;
+	BSPNode<HyperPlane, GetRelationFunc, SplitFunc>* root;
 	int maxdepth;
 	float BlanceRatio;
+	bool isSplitHyperPlaneriangle;
 
-
-	BSPTree(){}
-	BSPTree(vector<T*> Objects,int depth=7,float BlanceRatio=0.9f)
+	
+	BSPHyperPlaneree(){}
+	BSPHyperPlaneree(vector<HyperPlane*> Objects, int depth = 7, float BlanceRatio = 0.9f, bool isSplitHyperPlaneriangle = false)
 	{
-		T* blanceobject = BSPNode<T, GetRelationFunc>::GetBlanceObject(&Objects,BlanceRatio);
-		root = new BSPNode<T, GetRelationFunc>(Objects, blanceobject);
+		HyperPlane* blanceobject = BSPNode<HyperPlane,Vertex, GetRelationFunc, SplitFunc>::GetBlanceObject(&Objects,BlanceRatio);
+		root = new BSPNode<HyperPlane, Vertex, GetRelationFunc, SplitFunc>(Objects, blanceobject);
 		this->BlanceRatio = BlanceRatio;
-		buildTree(depth, root);
+		this->isSplitHyperPlaneriangle = isSplitHyperPlaneriangle;
+		buildHyperPlaneree(depth, root);
 	}
 
-	void buildTree(int depth,BSPNode<T,GetRelationFunc>* node )
+	void buildHyperPlaneree(int depth,BSPNode<HyperPlane, Vertex,GetRelationFunc, SplitFunc>* node)
 	{
 		if (depth < 0) return;
 
-		T* f_object = BSPNode<T, GetRelationFunc>::GetBlanceObject(&(node->frontObjects), BlanceRatio);
-		T* b_object = BSPNode<T, GetRelationFunc>::GetBlanceObject(&(node->behindObjects),BlanceRatio);
+		HyperPlane* f_object = BSPNode<HyperPlane, Vertex,GetRelationFunc, SplitFunc>::GetBlanceObject(&(node->frontObjects), BlanceRatio);
+		HyperPlane* b_object = BSPNode<HyperPlane, GetRelationFunc, SplitFunc>::GetBlanceObject(&(node->behindObjects),BlanceRatio);
 
 		if (f_object != nullptr)
 		{
-			BSPNode<T, GetRelationFunc>* f_node = new BSPNode<T, GetRelationFunc>(node->frontObjects, f_object);
+			BSPNode<HyperPlane, Vertex,GetRelationFunc, SplitFunc>* f_node = new BSPNode<HyperPlane, Vertex,GetRelationFunc, SplitFunc>(node->frontObjects, f_object,isSplitHyperPlaneriangle);
 			node->frontNode = f_node;
-			buildTree(depth - 1, f_node);
+			buildHyperPlaneree(depth - 1, f_node);
 		}
 		if (b_object != nullptr)
 		{
-			BSPNode<T, GetRelationFunc>* b_node = new BSPNode<T, GetRelationFunc>(node->behindObjects, b_object);
+			BSPNode<HyperPlane, Vertex, GetRelationFunc, SplitFunc>* b_node = new BSPNode<HyperPlane, Vertex,GetRelationFunc, SplitFunc>(node->behindObjects, b_object,isSplitHyperPlaneriangle);
 			node->behindNode = b_node;
-			buildTree(depth - 1, b_node);
+			buildHyperPlaneree(depth - 1, b_node);
 		}
 	}
 };

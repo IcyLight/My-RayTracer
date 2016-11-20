@@ -59,7 +59,7 @@ HitPoints Sphere::Intersect(const Ray* ray)
 	vec3& o = r.origin;
 	vec3& c = pos;
 	float delta = 4 * dot(d, o - c)*dot(d, o - c) - 4 * dot(d, d) * (dot(o - c, o - c) - radius*radius);
-	if (delta > FLOATOFFSET)
+	if (delta > floatEPS)
 	{
 
 		delta = sqrtf(delta);
@@ -206,6 +206,11 @@ MyTransform Triangle::GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3&
 
 
 
+float Triangle::PlaneDistance2Point(const vec3* v) const
+{
+	return dot(*v - this->a->pos, this->faceNormal);
+}
+
 bool Triangle::PlaneIntersect(const Ray* ray,vec3* HitPos)  //HitPos世界（视角）坐标下的
 {
 	Ray r = Ray(*ray);
@@ -219,7 +224,7 @@ bool Triangle::PlaneIntersect(const Ray* ray,vec3* HitPos)  //HitPos世界（视角）
 	vec3& o = r.origin;
 	vec3& va = this->a->pos;
 
-	if (glm::abs(dot(d, faceNormal)) < FLOATOFFSET)
+	if (glm::abs(dot(d, faceNormal)) < floatEPS)
 	{
 		*HitPos = vec3(0, 0, 0);
 		return false;
@@ -227,7 +232,7 @@ bool Triangle::PlaneIntersect(const Ray* ray,vec3* HitPos)  //HitPos世界（视角）
 
 	float t = (  (dot(va, faceNormal) -dot(o,faceNormal)) / dot(d, faceNormal) ) ;
 
-	if (t > -FLOATOFFSET && t < r.maxDepth)
+	if (t > -floatEPS && t < r.maxDepth)
 	{
 		r.xfrmRay(imt);
 		*HitPos= o + t *d;
@@ -242,7 +247,7 @@ bool Triangle::PlaneIntersect(const Ray* ray,vec3* HitPos)  //HitPos世界（视角）
 
 }
 
-HitPoints Triangle::Intersect(const Ray* ray)
+HitPoints Triangle::Intersect(const Ray* ray) const
 {
 
 	Ray r = Ray(*ray);
@@ -257,7 +262,7 @@ HitPoints Triangle::Intersect(const Ray* ray)
 	vec3& vc = this->c->pos;
 	vec3 IntFaceNormal = dot(faceNormal, r.dirction) < 0 ? faceNormal : -faceNormal;  //两面的法线选择和入射光同一面的
 	float denominator = dot(d, IntFaceNormal);
-	if (abs(denominator) < FLOATOFFSET) //平行的时候
+	if (abs(denominator) < floatEPS) //平行的时候
 	{
 		return triHit;
 	}
@@ -326,7 +331,7 @@ HitPoints Triangle::Intersect(const Ray* ray)
 		
 		
 
-		if(u>-FLOATOFFSET && v>-FLOATOFFSET && u + v<1+FLOATOFFSET)
+		if(u>-floatEPS && v>-floatEPS && u + v<1+floatEPS)
 		{
 			vec3 hitpos = o + t*d;
 			vec3 normal;
@@ -335,7 +340,7 @@ HitPoints Triangle::Intersect(const Ray* ray)
 			{
 				normal = (1 - u - v)*a->normal + u*b->normal + v*c->normal;
 				uvw = (1 - u - v)*a->uvw + u*b->uvw + v*c->uvw;
-
+				
 
 			}
 			else
@@ -354,15 +359,9 @@ HitPoints Triangle::Intersect(const Ray* ray)
 			//转换到视角空间
 			mt.AffineTrans(hitpos);
 			mt.NormalTrans(normal);
-
-
-
-
-
 			double depth = glm::min(vecLength(t*d), r.maxDepth) / r.maxDepth;
 			HitPoint hp = HitPoint(hitpos, normal,uvw, depth, GeometryType::tri);
 			triHit.push(hp);
-
 			return triHit;
 		}
 		else
@@ -380,11 +379,11 @@ BSP_Case Triangle::GetBSPRelation(const Triangle* object, const Triangle* hyperp
 	vec3 vA = object->a->pos - hyperplane->a->pos;
 	vec3 vB = object->b->pos - hyperplane->a->pos;
 	vec3 vC = object->c->pos - hyperplane->a->pos;
-	if (dot(hyperplaneNormal, vA) > FLOATOFFSET && dot(hyperplaneNormal, vB) > FLOATOFFSET && dot(hyperplaneNormal, vC) > FLOATOFFSET)
+	if (dot(hyperplaneNormal, vA) > floatEPS && dot(hyperplaneNormal, vB) > floatEPS && dot(hyperplaneNormal, vC) > floatEPS)
 	{
 		return BSP_Case::front;
 	}
-	else if (dot(hyperplaneNormal, vA) < -FLOATOFFSET && dot(hyperplaneNormal, vB) < -FLOATOFFSET && dot(hyperplaneNormal, vC) < -FLOATOFFSET)
+	else if (dot(hyperplaneNormal, vA) < -floatEPS && dot(hyperplaneNormal, vB) < -floatEPS && dot(hyperplaneNormal, vC) < -floatEPS)
 	{
 		return BSP_Case::behind;
 	}
@@ -395,46 +394,97 @@ BSP_Case Triangle::GetBSPRelation(const Triangle* object, const Triangle* hyperp
 	
 }
 
-
-
-
-
-void GetBSPClip(const Ray* ray, const BSPNode<Triangle, Triangle::GetBSPRelation>* node, list<Triangle*>* tlist)
+void Triangle::SplitTriangle(const Triangle* hyperPlane, const Triangle* Object, vector<Triangle*>* Out_Objects, vector<Vertex*>* Out_Vertexs)
 {
+	//重心坐标
+	//P1 = t*V1 +(1-t)*V2 + 0*V3
+	//P2 = t*V1 +(1-t)*V3 + 0*V2
+	//dot(A'P1,normal)==0 && dot(A'P2,normal)==0 A'为切平面上的点
+	//以上方程求得得uv
+	if (GetBSPRelation(Object, hyperPlane) != BSP_Case::span)
+	{
+		//return 0;
+	}
+	//平面两边分别有1个点和两个点
+	Vertex* soloVertex;
+	Vertex* doubleVertex_A;
+	Vertex* doubleVertex_B;
+
+	const vec3& N = hyperPlane->faceNormal;
+
+	float dis_a = hyperPlane->PlaneDistance2Point(&Object->a->pos);
+	float dis_b = hyperPlane->PlaneDistance2Point(&Object->b->pos);
+	float dis_c = hyperPlane->PlaneDistance2Point(&Object->c->pos);
+	
+
+
+	if (dis_a < floatEPS || dis_b < floatEPS || dis_b < floatEPS)
+	{
+
+	}
+	else
+	{
+		if (dis_a*dis_b > floatEPS)
+		{
+			soloVertex = Object->c;
+			doubleVertex_A = Object->a;
+			doubleVertex_B = Object->b;
+		}
+		else if (dis_a*dis_c > floatEPS)
+		{
+			soloVertex = Object->b;
+			doubleVertex_A = Object->a;
+			doubleVertex_B = Object->c;
+		}
+		else if (dis_b*dis_c > floatEPS)
+		{
+			soloVertex = Object->a;
+			doubleVertex_A = Object->b;
+			doubleVertex_B = Object->c;
+		}
+		float SdotN = dot(soloVertex->pos, N); //soloVertex dot Normal
+		float PlaneposdotN = dot(hyperPlane->a->pos, N);
+		float dAdotN = dot(doubleVertex_A->pos, N);
+		float dBdotN = dot(doubleVertex_B->pos, N);
+
+		float tA = (PlaneposdotN - dAdotN) / (SdotN - dAdotN);
+		float tB = (PlaneposdotN - dBdotN) / (SdotN - dBdotN);
+
+		
+	}
+	
+	
+
+
+	
+
+	
+
+
+
+	//return 3;
+}
+
+
+void GetBSPClip(const Ray* ray, const TriangleBSPNode* node, list<Triangle*>* tlist)
+{
+	
 	Ray transRay = Ray(*ray); //构造物体坐标下的射线
 	transRay.xfrmRay(node->Object->transform.trans);
 
 	vec3 RayStart = transRay.origin;
 	vec3 RayEnd = transRay.origin + transRay.maxDepth* transRay.dirction;
-
 	vec3& faceNormal = node->Object->faceNormal;
-	vec3 vS = RayStart - node->Object->a->pos;
-	vec3 vE = RayEnd - node->Object->a->pos;
+	float t1 = node->Object->PlaneDistance2Point(&RayStart);
+	float t2 = node->Object->PlaneDistance2Point(&RayEnd);
+	
 
 	vec3 interPos; //视角（世界）坐标下平面与射线交会点
 	bool isInter = node->Object->PlaneIntersect(ray, &interPos);
-	float t1 = dot(vS, faceNormal);
-	float t2 = dot(vE, faceNormal);
+	
 
 
-	//DEBUG
-	/*
-	if (isInter && (t1*t2 > 0))
-	{
-		vec3 gg = vE;
-		vec3 ff = faceNormal;
-		DEBUG_PRINT_3VECOTOR(gg)
-			DEBUG_PRINT_3VECOTOR(ff)
-			printf("%f",t2);
-		printf("%f", t1);
-		printf("AA");
-		
-	}
-	if (!isInter && (t1*t2 < 0))
-	{
-		printf("AA");
-	}
-	*/
+
 	
 
 
@@ -446,17 +496,17 @@ void GetBSPClip(const Ray* ray, const BSPNode<Triangle, Triangle::GetBSPRelation
 		const Ray* behindRay = ray;
 		Ray I2ERay = Ray(interPos, ray->dirction, ray->RecurCount, ray->maxDepth - vecLength(ray->origin - interPos)); //interPos to End
 		Ray O2IRay = Ray(ray->origin, ray->dirction, ray->RecurCount, vecLength(interPos - ray->origin)); //origin to interPos
-		if (t2 > FLOATOFFSET)
+		if (t2 > floatEPS)
 		{
 			frontRay = &I2ERay;
 			behindRay = &O2IRay;
 		}
-		else if(t2<-FLOATOFFSET)
+		else if(t2<-floatEPS)
 		{
 			frontRay = &O2IRay;
 			behindRay = &I2ERay;
 		}
-
+		
 
 		if (node->frontNode != nullptr)
 		{
@@ -482,7 +532,7 @@ void GetBSPClip(const Ray* ray, const BSPNode<Triangle, Triangle::GetBSPRelation
 	}
 	else
 	{
-		if (t2>FLOATOFFSET)
+		if (t2>floatEPS)
 		{
 			if (node->frontNode != nullptr)
 			{
@@ -494,7 +544,7 @@ void GetBSPClip(const Ray* ray, const BSPNode<Triangle, Triangle::GetBSPRelation
 			}
 		}
 		(*tlist).insert((*tlist).end(), node->spanObjects.begin(), node->spanObjects.end());
-		if(t2 < -FLOATOFFSET)
+		if(t2 < -floatEPS)
 		{
 			if (node->behindNode != nullptr)
 			{

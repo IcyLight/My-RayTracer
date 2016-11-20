@@ -7,6 +7,9 @@
 #include "Vertex.h"
 
 #include "BSP.h"
+
+
+
 enum GeometryType
 {
 	sph, tri, infinite
@@ -35,6 +38,7 @@ struct HitPoints
 	HitPoints()
 	{
 		PointCount = 0;
+		
 	}
 };
 
@@ -105,14 +109,22 @@ class Triangle : public Geometry
 public:
 	Vertex* a, * b, *c;
 	vec3 faceNormal;
-	virtual HitPoints Intersect(const Ray* ray);
+	virtual HitPoints Intersect(const Ray* ray) const;
 	 bool PlaneIntersect(const Ray* line,  vec3* HitPoint);  //求与三角形所在平面的交点
 
 	virtual MyTransform GetT2WMatrix(const vec3& uvw) const;
 	virtual MyTransform GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3& normal) const;
 	Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransform transform);
 
-	static BSP_Case GetBSPRelation(const Triangle* object, const Triangle* hyperplane);
-};
+	float PlaneDistance2Point(const vec3* v) const;
 
-void GetBSPClip(const Ray* ray, const BSPNode<Triangle, Triangle::GetBSPRelation>* node, list<Triangle*>* tlist);
+	static BSP_Case GetBSPRelation(const Triangle* object, const Triangle* hyperplane);
+	static void SplitTriangle(const Triangle* hyperPlane,const Triangle* Object ,vector<Triangle*>* Out_Objects,vector<Vertex*>* Out_Vertexs);
+};
+typedef  BSPNode<Triangle, Vertex,Triangle::GetBSPRelation, Triangle::SplitTriangle> TriangleBSPNode;
+typedef BSPTree<Triangle, Vertex, Triangle::GetBSPRelation, Triangle::SplitTriangle> TriangleBSPTree;
+
+void GetBSPClip(const Ray* ray, const TriangleBSPNode* node, list<Triangle*>* tlist);
+
+
+

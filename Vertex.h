@@ -7,6 +7,9 @@ public:
 	vec3 pos;
 	vec3 normal;
 	vec3 uvw;
+
+
+
 	Vertex(vec3 _pos)
 	{
 		this->pos = _pos;

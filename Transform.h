@@ -1,10 +1,13 @@
 #pragma once
 #include "lib\glm\glm\glm.hpp"
 #include "Debug.h"
-#define FLOATOFFSET 0.001
+//#define FLOATOFFSET 0.001
 #define RECURSIVE 1
 #define NORMALINTERPOLATION 1
 using namespace glm;
+
+const float floatEPS = _FEps_C._Float;
+
 
 mat4 Rotate(float degrees, vec3 axis);
 

@@ -19,6 +19,9 @@ using namespace glm;
 using namespace std;
 
 
+
+
+
 enum RenderMode
 {
 	VertexNormalMode, NormalMapMode
@@ -35,7 +38,7 @@ public:
 	vector<Triangle*> TriangleArray;
 	vector<Sphere*> SphereArray;
 
-	BSPTree<Triangle, Triangle::GetBSPRelation> bsptree;
+	TriangleBSPTree bsptree;
 	
 
 	vector<Light*> LightArray;
