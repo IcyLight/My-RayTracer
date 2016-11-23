@@ -119,7 +119,7 @@ public:
 	float PlaneDistance2Point(const vec3* v) const;
 
 	static BSP_Case GetBSPRelation(const Triangle* object, const Triangle* hyperplane);
-	static void SplitTriangle(const Triangle* hyperPlane,const Triangle* Object ,vector<Triangle*>* Out_Objects,vector<Vertex*>* Out_Vertexs);
+	static bool SplitTriangle(const Triangle* hyperPlane,const Triangle* Object ,vector<Triangle*>* Out_Objects,vector<Vertex*>* Out_Vertexs);
 };
 typedef  BSPNode<Triangle, Vertex,Triangle::GetBSPRelation, Triangle::SplitTriangle> TriangleBSPNode;
 typedef BSPTree<Triangle, Vertex, Triangle::GetBSPRelation, Triangle::SplitTriangle> TriangleBSPTree;

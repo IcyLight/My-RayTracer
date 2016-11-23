@@ -223,10 +223,25 @@ FIBITMAP* Display(Camera cam,Scene* scene)
 
 	mat4 LookAtMat = lookAt(cam.lookFrom, cam.lookAt, cam.up);
 	LookAtTrans = MyTransform(LookAtMat);
-	for (vector<Geometry*>::iterator i = scene->GeometryArray.begin(); i != scene->GeometryArray.end(); i++)
+	if (scene->bsptree.root != nullptr)
 	{
-		(*i)->transform = LookAtTrans* (*i)->transform;
-
+		for (vector<Triangle*>::iterator i = scene->bsptree.BSPObjects.begin(); i != scene->bsptree.BSPObjects.end(); i++)
+		{
+			(*i)->transform = LookAtTrans* (*i)->transform;
+		}
+	}
+	else
+	{
+		for (vector<Geometry*>::iterator i = scene->GeometryArray.begin(); i != scene->GeometryArray.end(); i++)
+		{
+			(*i)->transform = LookAtTrans* (*i)->transform;
+		}
+		list<Triangle*> splitedObjects;
+		scene->bsptree.root->GetTreeSplitedObjects(&splitedObjects);
+		for (list<Triangle*>::iterator i = splitedObjects.begin(); i != splitedObjects.end(); i++)
+		{
+			(*i)->transform = LookAtTrans* (*i)->transform;
+		}
 	}
 	for (vector<Light*>::iterator i = scene->LightArray.begin(); i != scene->LightArray.end(); i++)
 	{

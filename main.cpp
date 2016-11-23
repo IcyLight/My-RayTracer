@@ -29,7 +29,7 @@ int main()
 	vec3 eye = vec3(0, 40, 80);
 	vec3 center = vec3(0, 40, 0);
 	vec3 up = vec3(0, 1, 0);
-	Camera cam = Camera(60, 60, 1, eye, center, up, 1024, 768);
+	Camera cam = Camera(60, 60, 1, eye, center, up, 1920, 1080);
 
 	string address = string("test.obj");
 	Scene* myScene = new Scene(100, 1,RenderMode::NormalMapMode);
@@ -37,7 +37,6 @@ int main()
 
 	Light* l = new Light(normalize(cam.lookAt - cam.lookFrom), MyColor(1, 1, 1, 1), LightType::Dirctional);
 	myScene->LightArray.push_back(l);
-
 
 
 

@@ -206,7 +206,7 @@ MyTransform Triangle::GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3&
 
 
 
-float Triangle::PlaneDistance2Point(const vec3* v) const
+float Triangle::PlaneDistance2Point(const vec3* v) const //保留正负号表示方向
 {
 	return dot(*v - this->a->pos, this->faceNormal);
 }
@@ -375,15 +375,18 @@ HitPoints Triangle::Intersect(const Ray* ray) const
 
 BSP_Case Triangle::GetBSPRelation(const Triangle* object, const Triangle* hyperplane)
 {
-	vec3 hyperplaneNormal = hyperplane->faceNormal;
-	vec3 vA = object->a->pos - hyperplane->a->pos;
-	vec3 vB = object->b->pos - hyperplane->a->pos;
-	vec3 vC = object->c->pos - hyperplane->a->pos;
-	if (dot(hyperplaneNormal, vA) > floatEPS && dot(hyperplaneNormal, vB) > floatEPS && dot(hyperplaneNormal, vC) > floatEPS)
+	const vec3& hyperplaneNormal = hyperplane->faceNormal;
+	
+	float dA = hyperplane->PlaneDistance2Point(&object->a->pos);
+	float dB = hyperplane->PlaneDistance2Point(&object->b->pos);
+	float dC = hyperplane->PlaneDistance2Point(&object->c->pos);
+	int fCount = (dA > floatEPS) + (dB > floatEPS) + (dC > floatEPS);
+	int bCount = (dA < -floatEPS) + (dB < -floatEPS) + (dC < -floatEPS);
+	if (fCount>=1 && bCount<=0)
 	{
 		return BSP_Case::front;
 	}
-	else if (dot(hyperplaneNormal, vA) < -floatEPS && dot(hyperplaneNormal, vB) < -floatEPS && dot(hyperplaneNormal, vC) < -floatEPS)
+	else if (bCount>=1 && fCount<=0)
 	{
 		return BSP_Case::behind;
 	}
@@ -394,8 +397,9 @@ BSP_Case Triangle::GetBSPRelation(const Triangle* object, const Triangle* hyperp
 	
 }
 
-void Triangle::SplitTriangle(const Triangle* hyperPlane, const Triangle* Object, vector<Triangle*>* Out_Objects, vector<Vertex*>* Out_Vertexs)
+bool Triangle::SplitTriangle(const Triangle* hyperPlane, const Triangle* Object, vector<Triangle*>* Out_Objects, vector<Vertex*>* Out_Vertexs)
 {
+	
 	//重心坐标
 	//P1 = t*V1 +(1-t)*V2 + 0*V3
 	//P2 = t*V1 +(1-t)*V3 + 0*V2
@@ -403,66 +407,111 @@ void Triangle::SplitTriangle(const Triangle* hyperPlane, const Triangle* Object,
 	//以上方程求得得uv
 	if (GetBSPRelation(Object, hyperPlane) != BSP_Case::span)
 	{
-		//return 0;
+		return false;
 	}
 	//平面两边分别有1个点和两个点
 	Vertex* soloVertex;
 	Vertex* doubleVertex_A;
 	Vertex* doubleVertex_B;
 
-	const vec3& N = hyperPlane->faceNormal;
+	const vec3& hpN = hyperPlane->faceNormal;
+	const vec3& objN = Object->faceNormal;
 
 	float dis_a = hyperPlane->PlaneDistance2Point(&Object->a->pos);
 	float dis_b = hyperPlane->PlaneDistance2Point(&Object->b->pos);
 	float dis_c = hyperPlane->PlaneDistance2Point(&Object->c->pos);
 	
 
-
-	if (dis_a < floatEPS || dis_b < floatEPS || dis_b < floatEPS)
+	int coinCount = (glm::abs(dis_a) < floatEPS) + (glm::abs(dis_b) < floatEPS) + (glm::abs(dis_b) < floatEPS);
+	if (coinCount>=2 )
 	{
-
+		return false;
 	}
-	else
+	else if (coinCount == 1)
 	{
-		if (dis_a*dis_b > floatEPS)
+		return false;
+	}
+	else 
+	{
+		
+		if (dis_a*dis_b > 0)
 		{
 			soloVertex = Object->c;
 			doubleVertex_A = Object->a;
 			doubleVertex_B = Object->b;
 		}
-		else if (dis_a*dis_c > floatEPS)
+		else if (dis_a*dis_c > 0)
 		{
 			soloVertex = Object->b;
 			doubleVertex_A = Object->a;
 			doubleVertex_B = Object->c;
 		}
-		else if (dis_b*dis_c > floatEPS)
+		else if (dis_b*dis_c > 0)
 		{
 			soloVertex = Object->a;
 			doubleVertex_A = Object->b;
 			doubleVertex_B = Object->c;
 		}
-		float SdotN = dot(soloVertex->pos, N); //soloVertex dot Normal
-		float PlaneposdotN = dot(hyperPlane->a->pos, N);
-		float dAdotN = dot(doubleVertex_A->pos, N);
-		float dBdotN = dot(doubleVertex_B->pos, N);
+		else
+		{
+			return false;
+		}
+		float SdotN = dot(soloVertex->pos, hpN); //soloVertex dot Normal
+		float PlaneposdotN = dot(hyperPlane->a->pos, hpN);
+		float dAdotN = dot(doubleVertex_A->pos, hpN);
+		float dBdotN = dot(doubleVertex_B->pos, hpN);
 
-		float tA = (PlaneposdotN - dAdotN) / (SdotN - dAdotN);
-		float tB = (PlaneposdotN - dBdotN) / (SdotN - dBdotN);
-
+		float tA = (PlaneposdotN - dAdotN) / (SdotN - dAdotN) ; 
+		float tB = (PlaneposdotN - dBdotN) / (SdotN - dBdotN) ; 
+		Vertex* vE = new Vertex();
+		Vertex* vF = new Vertex();
+		vE->pos = tA*soloVertex->pos + (1 - tA)* doubleVertex_A->pos;
+		vE->uvw = tA*soloVertex->uvw + (1 - tA)* doubleVertex_A->uvw;
+		vE->normal = tA*soloVertex->normal + (1 - tA)* doubleVertex_A->normal;
+		vF->pos = tB*soloVertex->pos + (1 - tB)* doubleVertex_B->pos;
+		vF->uvw = tB*soloVertex->uvw + (1 - tB)* doubleVertex_B->uvw;
+		vF->normal = tB*soloVertex->normal + (1 - tB)* doubleVertex_B->normal;
+		Out_Vertexs->push_back(vE);
+		Out_Vertexs->push_back(vF);
 		
+		Triangle* t1;
+		Triangle* t2;
+		Triangle* t3;
+
+		//保证新的三角形和原来的三角形是朝向同一面的
+		//this->faceNormal = normalize(cross(c->pos - a->pos, b->pos - a->pos));
+		if (dot(objN, cross(vE->pos - soloVertex->pos, vF->pos - soloVertex->pos)) > floatEPS)
+		{
+			t1 = new Triangle(soloVertex, vF, vE,Object->m,Object->transform);
+		}
+		else
+		{
+			t1 = new Triangle(soloVertex, vE, vF, Object->m, Object->transform);
+		}
+
+		if (dot(objN, cross(doubleVertex_A->pos - vE->pos, doubleVertex_B->pos - vE->pos)) > floatEPS)
+		{
+			t2 = new Triangle(vE, doubleVertex_B, doubleVertex_A, Object->m, Object->transform);
+		}
+		else
+		{
+			t2 = new Triangle(vE, doubleVertex_A, doubleVertex_B, Object->m, Object->transform);
+		}
+
+		if (dot(objN, cross(vE->pos - doubleVertex_B->pos, vF->pos - doubleVertex_B->pos)) > floatEPS)
+		{
+			t3 = new Triangle(doubleVertex_B, vF, vE, Object->m, Object->transform);
+		}
+		else
+		{
+			t3 = new Triangle(doubleVertex_B, vE, vF, Object->m, Object->transform);
+		}
+		Out_Objects->push_back(t1);
+		Out_Objects->push_back(t2);
+		Out_Objects->push_back(t3);
+
+		return true;
 	}
-	
-	
-
-
-	
-
-	
-
-
-
-	//return 3;
 }
 
 
@@ -482,16 +531,9 @@ void GetBSPClip(const Ray* ray, const TriangleBSPNode* node, list<Triangle*>* tl
 	vec3 interPos; //视角（世界）坐标下平面与射线交会点
 	bool isInter = node->Object->PlaneIntersect(ray, &interPos);
 	
-
-
-
-	
-
-
 	//尽量保证以前中后的顺序加入链表，后面可能添加新的功能，例如快速消隐
 	if (isInter)
 	{
-		
 		const Ray* frontRay = ray;
 		const Ray* behindRay = ray;
 		Ray I2ERay = Ray(interPos, ray->dirction, ray->RecurCount, ray->maxDepth - vecLength(ray->origin - interPos)); //interPos to End
@@ -506,8 +548,6 @@ void GetBSPClip(const Ray* ray, const TriangleBSPNode* node, list<Triangle*>* tl
 			frontRay = &O2IRay;
 			behindRay = &I2ERay;
 		}
-		
-
 		if (node->frontNode != nullptr)
 		{
 			
@@ -532,6 +572,7 @@ void GetBSPClip(const Ray* ray, const TriangleBSPNode* node, list<Triangle*>* tl
 	}
 	else
 	{
+		
 		if (t2>floatEPS)
 		{
 			if (node->frontNode != nullptr)
