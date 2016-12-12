@@ -34,12 +34,12 @@ MyColor Scene::Raycast(const Ray* ray) const
 
 
 	vector<MyHit> SceneHits;
-	if (bsptree.root != nullptr)
+	if (bsptree != nullptr)
 	{
 		list<Triangle*> clipTriangleList;
-		GetBSPClip(ray, bsptree.root,&clipTriangleList);
+		GetBSPClip(ray, bsptree->root,&clipTriangleList);
 		//printf("此射线检测三角形个数%d\n", clipTriangleList.size());
-		for (list<Triangle*>::const_iterator i = clipTriangleList.cbegin(); i != clipTriangleList.end(); i++)
+		for (list<Triangle*>::const_iterator i = clipTriangleList.cbegin(); i != clipTriangleList.cend(); i++)
 		{
 			HitPoints hps = (*i)->Intersect(ray);
 			for (int x = 0; x < hps.PointCount; x++)
@@ -53,7 +53,7 @@ MyColor Scene::Raycast(const Ray* ray) const
 			}
 		}
 
-		for (vector<Sphere*>::const_iterator i = SphereArray.cbegin(); i != SphereArray.end(); i++)
+		for (vector<Sphere*>::const_iterator i = SphereArray.cbegin(); i != SphereArray.cend(); i++)
 		{
 			HitPoints hps = (*i)->Intersect(ray);
 			for (int x = 0; x < hps.PointCount; x++)
@@ -113,7 +113,7 @@ MyColor Scene::GetColor(const HitPoint* hit, const Ray* ray, const Geometry* geo
 	else if (renderMode == RenderMode::NormalMapMode)
 	{
 
-		
+		normal = (vec3)geometry->m->GetMapColor(MapType::normalMap, hit->uvw);
 		if (normal.z > 0.5f)  //贴图返回的是有效的法线
 		{
 			MyTransform invr = geometry->transform.MyInverse();
@@ -128,7 +128,7 @@ MyColor Scene::GetColor(const HitPoint* hit, const Ray* ray, const Geometry* geo
 
 			MyTransform T2VTransfrom = geometry->transform*T2WTrans;
 
-			normal = (vec3)geometry->m->GetMapColor(MapType::normalMap, hit->uvw);
+
 			T2VTransfrom.NormalTrans(normal);
 		}
 		else
@@ -147,7 +147,6 @@ MyColor Scene::GetColor(const HitPoint* hit, const Ray* ray, const Geometry* geo
 	for (vector<Light*>::const_iterator i = LightArray.cbegin(); i != LightArray.cend(); i++)
 	{
 		
-
 		const Light* light = *i;
 
 		if (light->type == LightType::Point )
@@ -156,13 +155,10 @@ MyColor Scene::GetColor(const HitPoint* hit, const Ray* ray, const Geometry* geo
 			vec3 lightIn = hitpos - light->pos;
 			float distance = vecLength(lightIn);
 			lightIn = normalize(lightIn);
-			if (visibile(&Ray(hitpos + normalize(-lightIn)*0.001f, -lightIn, RecursiveMaxDepth,MaxRayDepth),light))
+			if (visibile(&Ray(hitpos + normalize(-lightIn)*RayOffset, -lightIn, RecursiveMaxDepth,MaxRayDepth),light))
 			{
 				vec3 H = normalize(-ray->dirction - lightIn);
 				float disFactor = light->Intensity / (LightModelConstant.x + LightModelConstant.y *distance + LightModelConstant.z *distance *distance);
-
-
-
 
 				MyColor LightColor = light->color;
 				MyColor diffuseColor = LightColor* ( diffuse* disFactor * glm::max(dot(normal, -lightIn), 0.f) );
@@ -196,7 +192,7 @@ MyColor Scene::GetColor(const HitPoint* hit, const Ray* ray, const Geometry* geo
 	if (RECURSIVE)
 	{
 		vec3 re = reflect(ray->dirction, normal);
-		PointColor = PointColor + specular*Raycast(&Ray(hitpos + re*0.001f, re, ray->RecurCount + 1, MaxRayDepth));
+		PointColor = PointColor + specular*Raycast(&Ray(hitpos + re*RayOffset, re, ray->RecurCount + 1, MaxRayDepth));
 		//注意reflect的参数I是入射方向的反向v
 	}
 	
@@ -223,9 +219,10 @@ FIBITMAP* Display(Camera cam,Scene* scene)
 
 	mat4 LookAtMat = lookAt(cam.lookFrom, cam.lookAt, cam.up);
 	LookAtTrans = MyTransform(LookAtMat);
-	if (scene->bsptree.root != nullptr)
+	if (scene->bsptree != nullptr)
 	{
-		for (vector<Triangle*>::iterator i = scene->bsptree.BSPObjects.begin(); i != scene->bsptree.BSPObjects.end(); i++)
+		//BSPObjects中包含了分割出来的新物体
+		for (vector<Triangle*>::iterator i = scene->bsptree->BSPObjects.begin(); i != scene->bsptree->BSPObjects.end(); i++)
 		{
 			(*i)->transform = LookAtTrans* (*i)->transform;
 		}
@@ -236,12 +233,7 @@ FIBITMAP* Display(Camera cam,Scene* scene)
 		{
 			(*i)->transform = LookAtTrans* (*i)->transform;
 		}
-		list<Triangle*> splitedObjects;
-		scene->bsptree.root->GetTreeSplitedObjects(&splitedObjects);
-		for (list<Triangle*>::iterator i = splitedObjects.begin(); i != splitedObjects.end(); i++)
-		{
-			(*i)->transform = LookAtTrans* (*i)->transform;
-		}
+
 	}
 	for (vector<Light*>::iterator i = scene->LightArray.begin(); i != scene->LightArray.end(); i++)
 	{
@@ -284,13 +276,13 @@ FIBITMAP* Display(Camera cam,Scene* scene)
 bool Scene::visibile(const Ray* ray,const Light* light) const
 {
 	float OLdis = vecLength(light->pos - ray->origin);
-
+	
 	vector<MyHit> SceneHits;
 
-	if (bsptree.root != nullptr)
+	if (bsptree!= nullptr)
 	{
 		list<Triangle*> clipTriangleList;
-		GetBSPClip(ray, bsptree.root, &clipTriangleList);
+		GetBSPClip(ray, bsptree->root, &clipTriangleList);
 
 		for (list<Triangle*>::const_iterator i = clipTriangleList.cbegin(); i != clipTriangleList.end(); i++)
 		{
@@ -299,7 +291,7 @@ bool Scene::visibile(const Ray* ray,const Light* light) const
 			{
 				HitPoint hp = hps.hps[x];
 				MyHit hit = MyHit(hp, *i);
-				if (true)
+				if (vecLength(hp.position - ray->origin) < OLdis)
 				{
 					SceneHits.push_back(hit);
 				}
@@ -313,7 +305,7 @@ bool Scene::visibile(const Ray* ray,const Light* light) const
 			{
 				HitPoint hp = hps.hps[x];
 				MyHit hit = MyHit(hp, *i);
-				if (true)
+				if (vecLength(hp.position - ray->origin) < OLdis)
 				{
 					SceneHits.push_back(hit);
 				}
@@ -331,7 +323,6 @@ bool Scene::visibile(const Ray* ray,const Light* light) const
 				MyHit hit = MyHit(hp, *i);
 				if (vecLength(hp.position - ray->origin) < OLdis)
 				{
-
 					SceneHits.push_back(hit);
 				}
 
