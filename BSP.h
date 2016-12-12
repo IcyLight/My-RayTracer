@@ -13,8 +13,8 @@ enum BSP_Case
 
 //SplitFunc返回分割出的形状数量,若错误则返回0
 template<typename HyperPlane, typename Vertex, 
-	BSP_Case(*GetRelationFunc)(const HyperPlane* object, const HyperPlane* HyperPlane), 
-	bool(*SplitFunc)(const HyperPlane* plane, const HyperPlane* Object, vector<HyperPlane*>* Out_ObjectsContainer, vector<Vertex*>* Out_VertexsContainer) //物体容器和顶点容器，分别盛放切割产生的物体和顶点，返回是否成功切割
+	BSP_Case(*GetRelationFunc)(const HyperPlane* object, const HyperPlane* HyperPlane),  //获取物体和超平面之间的关系
+	bool(*SplitFunc)(const HyperPlane* plane, const HyperPlane* Object, vector<HyperPlane*>* Out_ObjectsContainer, vector<Vertex*>* Out_VertexsContainer) //传入物体容器和顶点容器，分别盛放切割产生的物体和顶点，这些物体和顶点由BSP树负责管理,返回是否成功切割
 >
 class BSPNode
 {
@@ -74,7 +74,6 @@ public:
 							default:
 								splitedObjects.push_back(SplitedObjects[j]);
 								spanObjects.push_back(SplitedObjects[j]);
-								printf("AA");
 								break;
 							}
 
@@ -98,6 +97,9 @@ public:
 
 	static HyperPlane* GetBlanceObject(const vector<HyperPlane*>* Objects, float blanceRatio)
 	{
+		HyperPlane* pMostBlancedObject = nullptr;
+		float BestRatio;
+
 		if ((*Objects).empty())
 		{
 			return nullptr;
@@ -115,7 +117,7 @@ public:
 					++frontCount;
 					break;
 				case BSP_Case::behind:
-					++++behindCount;
+					++behindCount;
 					break;
 				default:
 					break;
@@ -127,8 +129,24 @@ public:
 			{
 				return (*Objects) [i];
 			}
+			else
+			{
+				if (pMostBlancedObject == nullptr)
+				{
+					pMostBlancedObject = (*Objects)[i];
+					BestRatio = ratio;
+				}
+				else
+				{
+					if (ratio > BestRatio)
+					{
+						pMostBlancedObject = (*Objects)[i];
+						BestRatio = ratio;
+					}
+				}
+			}
 		}
-		return (*Objects) [0];
+		return pMostBlancedObject;
 	}
 
 	void GetTreeSplitedObjects(list<HyperPlane*>* Out_ObjectContainer)
@@ -144,6 +162,33 @@ public:
 		}
 		return;
 	}
+
+
+	
+	
+	~BSPNode()
+	{
+		if (frontNode != nullptr)
+		{
+			delete frontNode;
+		}
+		if (behindNode != nullptr)
+		{
+			delete behindNode;
+		}
+		for (int i = 0; i < splitedVertexs.size(); i++)
+		{
+			delete splitedVertexs[i];
+		}
+		for (int i = 0; i < splitedObjects.size(); i++)
+		{
+			delete splitedObjects[i];
+		}
+	}
+
+	private:
+		BSPNode(const BSPNode& that);
+		BSPNode& operator=(const BSPNode& that);
 };
 
 
@@ -198,6 +243,16 @@ public:
 		}
 	}
 
+
+	
+	~BSPTree()
+	{
+		delete root;
+	}
+
+private:
+	BSPTree(const BSPTree& that);
+	BSPTree& operator=(const BSPTree& that);
 
 };
 

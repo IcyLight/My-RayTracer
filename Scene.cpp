@@ -252,16 +252,7 @@ FIBITMAP* Display(Camera cam,Scene* scene)
 		th3.join();
 		th4.join();
 
-		//RenderRow(scene, cam, m, i);		
-		/*
-		for (int j = 0; j < cam.ScreenWidth; j++)
-		{
 
-			Ray r = scene->RayThurPixel(cam, j, i, 1);
-			MyColor color = scene->Raycast(r);
-			FreeImage_SetPixelColor(m, j, i, &(color.GetRBGQUAD()));
-		}
-		*/
 		printf("‰÷»æµ⁄%d––\n", i);
 		int lkj = 0;
 	}

@@ -110,10 +110,11 @@ public:
 	Vertex* a, * b, *c;
 	vec3 faceNormal;
 	virtual HitPoints Intersect(const Ray* ray) const;
-	 bool PlaneIntersect(const Ray* line,  vec3* HitPoint);  //求与三角形所在平面的交点
+	bool PlaneIntersect(const Ray* line,  vec3* HitPoint);  //求与三角形所在平面的交点
 
-	virtual MyTransform GetT2WMatrix(const vec3& uvw) const;
-	virtual MyTransform GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3& normal) const;
+	virtual MyTransform GetT2WMatrix(const vec3& uvw) const; //从 tangent space转到视角空间（世界坐标）的矩阵
+	virtual MyTransform GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3& normal) const; 
+
 	Triangle(Vertex* _vA, Vertex* _vB, Vertex* _vC, Matieral* m, MyTransform transform);
 
 	float PlaneDistance2Point(const vec3* v) const;

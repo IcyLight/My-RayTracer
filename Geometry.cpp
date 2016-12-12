@@ -193,9 +193,6 @@ MyTransform Triangle::GetT2WMatrix(const vec3& uvw, const vec3& pos, const vec3&
 	
 	mat2 TBmat = inverse(mat2(deltaUV1.x, deltaUV1.y, deltaUV2.x, deltaUV2.y));
 
-	
-
-
 	vec3 T = TBmat[0][0] * deltaPos1 + TBmat[0][1] * deltaPos2;
 	vec3 B = TBmat[1][0] * deltaPos1 + TBmat[1][1] * deltaPos2;
 
