@@ -18,4 +18,13 @@
 
 ·通过BSP树分割场景，加速光线追踪
 
+### 渲染成果链接
+http://p1.bpimg.com/567571/5193c17ff50b4d59.png
+
+http://p1.bqimg.com/567571/a2114fe042f8a52d.png
+
+http://i1.piimg.com/567571/6b8ed462e447d763.png 
+
+http://p1.bpimg.com/567571/aa05007263c2472c.png 
+
 
